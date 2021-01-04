@@ -4,11 +4,13 @@ use std::error::Error;
 use clap::{App, Arg};
 use jmespatch::ToJmespath;
 
+mod hdf5;
+
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 enum Format {
-	Rust, Json
+	Rust, Json, Hdf5
 }
 
 struct Opts {
@@ -31,6 +33,12 @@ fn inspect<R: io::Read>(buf: &mut R, format: Format, query: Option<String>) -> R
 		match format {
 			Json => println!("{}", serde_json::to_string(&game)?),
 			Rust => println!("{:#?}", game),
+			Hdf5 => {
+				//FIXME: find a better approach than writing to a temp file
+				let mut f = tempfile::NamedTempFile::new()?;
+				hdf5::write(&game, f.path())?;
+				io::copy(&mut f, &mut io::stdout())?;
+			},
 		};
 	}
 	Ok(())
@@ -44,7 +52,7 @@ fn parse_opts() -> Result<Opts, String> {
 		.arg(Arg::with_name("format")
 			 .help("Output format")
 			 .short("o")
-			 .possible_values(&["json", "rust"])
+			 .possible_values(&["json", "rust", "hdf5"])
 			 .default_value("rust"))
 		.arg(Arg::with_name("json")
 			.help("Output as JSON (same as `-o json`)")
@@ -76,6 +84,7 @@ fn parse_opts() -> Result<Opts, String> {
 		match matches.value_of("format").unwrap() {
 			"json" => Json,
 			"rust" => Rust,
+			"hdf5" => Hdf5,
 			o => Err(format!("unsupported output format: {}", o))?,
 		}
 	};
