@@ -1,7 +1,7 @@
 use std::path;
 
 use ndarray::{Array1, Array2};
-use hdf5::Result;
+use hdf5::{File, Group, Result};
 
 use peppi::{frame, game, triggers};
 use peppi::primitives::{Position, Velocity};
@@ -427,20 +427,20 @@ fn transform(game: &game::Game) -> Frames {
 	}
 }
 
-fn write_arr1<T: hdf5::H5Type>(group: &hdf5::Group, arr: &Array1<T>, name: &'static str) -> Result<()> {
+fn write_arr1<T: hdf5::H5Type>(group: &Group, arr: &Array1<T>, name: &'static str) -> Result<()> {
 	group.new_dataset::<T>().create(name, arr.dim())?.write(arr)
 }
 
-fn write_arr2<T: hdf5::H5Type>(group: &hdf5::Group, arr: &Array2<T>, name: &'static str) -> Result<()> {
+fn write_arr2<T: hdf5::H5Type>(group: &Group, arr: &Array2<T>, name: &'static str) -> Result<()> {
 	group.new_dataset::<T>().create(name, arr.dim())?.write(arr)
 }
 
-fn write_pre_v1_4(pre: &PreV1_4, g: &hdf5::Group) -> Result<()> {
+fn write_pre_v1_4(pre: &PreV1_4, g: &Group) -> Result<()> {
 	write_arr2(&g, &pre.damage, "damage")?;
 	Ok(())
 }
 
-fn write_pre_v1_2(pre: &PreV1_2, g: &hdf5::Group) -> Result<()> {
+fn write_pre_v1_2(pre: &PreV1_2, g: &Group) -> Result<()> {
 	write_arr2(&g, &pre.raw_analog_x, "raw_analog_x")?;
 	if let Some(pre) = &pre.v1_4 {
 		write_pre_v1_4(pre, g)?;
@@ -448,7 +448,7 @@ fn write_pre_v1_2(pre: &PreV1_2, g: &hdf5::Group) -> Result<()> {
 	Ok(())
 }
 
-fn write_pre(pre: &Pre, group: &hdf5::Group) -> Result<()> {
+fn write_pre(pre: &Pre, group: &Group) -> Result<()> {
 	let g = group.create_group("pre")?;
 	write_arr2(&g, &pre.position, "position")?;
 	write_arr2(&g, &pre.direction, "direction")?;
@@ -466,13 +466,13 @@ fn write_pre(pre: &Pre, group: &hdf5::Group) -> Result<()> {
 	Ok(())
 }
 
-fn write_post_v3_5(post: &PostV3_5, g: &hdf5::Group) -> Result<()> {
+fn write_post_v3_5(post: &PostV3_5, g: &Group) -> Result<()> {
 	write_arr2(&g, &post.velocities_autogenous, "velocities_autogenous")?;
 	write_arr2(&g, &post.velocities_knockback, "velocities_knockback")?;
 	Ok(())
 }
 
-fn write_post_v2_1(post: &PostV2_1, g: &hdf5::Group) -> Result<()> {
+fn write_post_v2_1(post: &PostV2_1, g: &Group) -> Result<()> {
 	write_arr2(&g, &post.hurtbox_state, "hurtbox_state")?;
 	if let Some(post) = &post.v3_5 {
 		write_post_v3_5(post, g)?;
@@ -480,7 +480,7 @@ fn write_post_v2_1(post: &PostV2_1, g: &hdf5::Group) -> Result<()> {
 	Ok(())
 }
 
-fn write_post_v2_0(post: &PostV2_0, g: &hdf5::Group) -> Result<()> {
+fn write_post_v2_0(post: &PostV2_0, g: &Group) -> Result<()> {
 	write_arr2(&g, &post.flags, "flags")?;
 	write_arr2(&g, &post.misc_as, "misc_as")?;
 	write_arr2(&g, &post.airborne, "airborne")?;
@@ -493,7 +493,7 @@ fn write_post_v2_0(post: &PostV2_0, g: &hdf5::Group) -> Result<()> {
 	Ok(())
 }
 
-fn write_post_v0_2(post: &PostV0_2, g: &hdf5::Group) -> Result<()> {
+fn write_post_v0_2(post: &PostV0_2, g: &Group) -> Result<()> {
 	write_arr2(&g, &post.state_age, "state_age")?;
 	if let Some(post) = &post.v2_0 {
 		write_post_v2_0(post, g)?;
@@ -501,7 +501,7 @@ fn write_post_v0_2(post: &PostV0_2, g: &hdf5::Group) -> Result<()> {
 	Ok(())
 }
 
-fn write_post(post: &Post, group: &hdf5::Group) -> Result<()> {
+fn write_post(post: &Post, group: &Group) -> Result<()> {
 	let g = group.create_group("post")?;
 	write_arr2(&g, &post.position, "position")?;
 	write_arr2(&g, &post.direction, "direction")?;
@@ -519,24 +519,24 @@ fn write_post(post: &Post, group: &hdf5::Group) -> Result<()> {
 	Ok(())
 }
 
-fn write_port(port: &Port, group: &hdf5::Group) -> Result<()> {
+fn write_port(port: &Port, group: &Group) -> Result<()> {
 	write_pre(&port.pre, &group)?;
 	write_post(&port.post, &group)?;
 	Ok(())
 }
 
-fn write_start(start: &Start, file: &hdf5::File) -> Result<()> {
+fn write_start(start: &Start, file: &File) -> Result<()> {
 	let g_start = file.create_group("start")?;
 	write_arr1(&g_start, &start.random_seed, "random_seed")?;
 	Ok(())
 }
 
-fn write_end_v3_7(end: &EndV3_7, g: &hdf5::Group) -> Result<()> {
+fn write_end_v3_7(end: &EndV3_7, g: &Group) -> Result<()> {
 	write_arr1(&g, &end.latest_finalized_frame, "latest_finalized_frame")?;
 	Ok(())
 }
 
-fn write_end(end: &End, file: &hdf5::File) -> Result<()> {
+fn write_end(end: &End, file: &File) -> Result<()> {
 	let g_end = file.create_group("end")?;
 	if let Some(end) = &end.v3_7 {
 		write_end_v3_7(end, &g_end)?;
@@ -544,12 +544,12 @@ fn write_end(end: &End, file: &hdf5::File) -> Result<()> {
 	Ok(())
 }
 
-fn write_item_v3_6(item: &ItemV3_6, g: &hdf5::Group) -> Result<()> {
+fn write_item_v3_6(item: &ItemV3_6, g: &Group) -> Result<()> {
 	write_arr2(&g, &item.owner, "owner")?;
 	Ok(())
 }
 
-fn write_item_v3_2(item: &ItemV3_2, g: &hdf5::Group) -> Result<()> {
+fn write_item_v3_2(item: &ItemV3_2, g: &Group) -> Result<()> {
 	write_arr2(&g, &item.misc, "misc")?;
 	if let Some(item) = &item.v3_6 {
 		write_item_v3_6(item, g)?;
@@ -557,7 +557,7 @@ fn write_item_v3_2(item: &ItemV3_2, g: &hdf5::Group) -> Result<()> {
 	Ok(())
 }
 
-fn write_item(item: &Item, file: &hdf5::File) -> Result<()> {
+fn write_item(item: &Item, file: &File) -> Result<()> {
 	let g_item = file.create_group("item")?;
 	write_arr2(&g_item, &item.id, "id")?;
 	write_arr2(&g_item, &item.r#type, "type")?;
@@ -574,7 +574,7 @@ fn write_item(item: &Item, file: &hdf5::File) -> Result<()> {
 }
 
 pub fn write<P: AsRef<path::Path>>(game: &game::Game, path: P) -> Result<()> {
-	let file = hdf5::File::create(path)?;
+	let file = File::create(path)?;
 	let frames = transform(game);
 
 	if let Some(start) = &frames.start {
