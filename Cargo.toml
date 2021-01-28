@@ -9,7 +9,7 @@ clap = "2.33"
 hdf5 = "0.7"
 jmespatch = { version = "0.3", features = ["specialized"] }
 mimalloc = { version = "0.1", default-features = false }
-ndarray = "0.13"
+ndarray = "0.14"
 num-traits = "0.2"
 peppi = { git = "https://github.com/hohav/peppi.git", branch = "const-generics", features = ["hdf5"] }
 pretty_env_logger = "0.4"
