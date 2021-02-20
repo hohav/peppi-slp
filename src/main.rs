@@ -7,14 +7,15 @@ use jmespatch::ToJmespath;
 
 use peppi::game::Game;
 
-mod hdf5;
+mod parquet;
+mod transform;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[derive(Copy, Clone)]
 enum Format {
-	Rust, Json, Peppi
+	Json, Peppi, Rust
 }
 
 struct Opts {
@@ -33,7 +34,11 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 	fs::write(dir.join("start.json"), serde_json::to_string(&game.start)?)?;
 	fs::write(dir.join("end.json"), serde_json::to_string(&game.end)?)?;
 	if !skip_frames {
-		hdf5::write(game, dir.join("frames.hdf5"))?;
+		let frames = transform::transform(&game);
+		if let Some(item) = &frames.item {
+			parquet::write_items(item, dir.join("items.parquet"))?;
+		}
+		parquet::write_frames(&frames, dir.join("frames.parquet"))?;
 	}
 	Ok(())
 }
@@ -117,8 +122,8 @@ fn parse_opts() -> Result<Opts, String> {
 		use Format::*;
 		match matches.value_of("format").unwrap() {
 			"json" => Json,
-			"rust" => Rust,
 			"peppi" => Peppi,
+			"rust" => Rust,
 			_ => unimplemented!(),
 		}
 	};
