@@ -1,17 +1,15 @@
-use ndarray::{Array1, Array2};
-
 use peppi::{frame, game};
 
 pub const MAX_ITEMS: usize = 16;
 
 pub struct Position {
-	pub x: Array2<f32>,
-	pub y: Array2<f32>,
+	pub x: Vec<Vec<f32>>,
+	pub y: Vec<Vec<f32>>,
 }
 
 pub struct Velocity {
-	pub x: Array2<f32>,
-	pub y: Array2<f32>,
+	pub x: Vec<Vec<f32>>,
+	pub y: Vec<Vec<f32>>,
 }
 
 pub struct Velocities {
@@ -20,26 +18,26 @@ pub struct Velocities {
 }
 
 pub struct TriggersPhysical {
-	pub l: Array2<f32>,
-	pub r: Array2<f32>,
+	pub l: Vec<Vec<f32>>,
+	pub r: Vec<Vec<f32>>,
 }
 
 pub struct Triggers {
-	pub logical: Array2<f32>,
+	pub logical: Vec<Vec<f32>>,
 	pub physical: TriggersPhysical,
 }
 
 pub struct Buttons {
-	pub logical: Array2<i32>,
-	pub physical: Array2<i32>,
+	pub logical: Vec<Vec<i32>>,
+	pub physical: Vec<Vec<i32>>,
 }
 
 pub struct Start {
-	pub random_seed: Array1<i32>,
+	pub random_seed: Vec<i32>,
 }
 
 pub struct EndV3_7 {
-	pub latest_finalized_frame: Array1<i32>,
+	pub latest_finalized_frame: Vec<i32>,
 }
 
 pub struct End {
@@ -47,23 +45,23 @@ pub struct End {
 }
 
 pub struct PreV1_4 {
-	pub damage: Array2<f32>,
+	pub damage: Vec<Vec<f32>>,
 }
 
 pub struct PreV1_2 {
-	pub raw_analog_x: Array2<i32>,
+	pub raw_analog_x: Vec<Vec<i32>>,
 	pub v1_4: Option<PreV1_4>,
 }
 
 pub struct Pre {
 	pub position: Position,
-	pub direction: Array2<bool>,
+	pub direction: Vec<Vec<bool>>,
 	pub joystick: Position,
 	pub cstick: Position,
 	pub triggers: Triggers,
-	pub random_seed: Array2<i32>,
+	pub random_seed: Vec<Vec<i32>>,
 	pub buttons: Buttons,
-	pub state: Array2<i32>,
+	pub state: Vec<Vec<i32>>,
 	pub v1_2: Option<PreV1_2>,
 }
 
@@ -72,57 +70,57 @@ pub struct PostV3_5 {
 }
 
 pub struct PostV2_1 {
-	pub hurtbox_state: Array2<i32>,
+	pub hurtbox_state: Vec<Vec<i32>>,
 	pub v3_5: Option<PostV3_5>,
 }
 
 pub struct PostV2_0 {
-	pub flags: Array2<i64>,
-	pub misc_as: Array2<f32>,
-	pub airborne: Array2<bool>,
-	pub ground: Array2<i32>,
-	pub jumps: Array2<i32>,
-	pub l_cancel: Array2<i32>,
+	pub flags: Vec<Vec<i64>>,
+	pub misc_as: Vec<Vec<f32>>,
+	pub airborne: Vec<Vec<bool>>,
+	pub ground: Vec<Vec<i32>>,
+	pub jumps: Vec<Vec<i32>>,
+	pub l_cancel: Vec<Vec<i32>>,
 	pub v2_1: Option<PostV2_1>,
 }
 
 pub struct PostV0_2 {
-	pub state_age: Array2<f32>,
+	pub state_age: Vec<Vec<f32>>,
 	pub v2_0: Option<PostV2_0>,
 }
 
 pub struct Post {
 	pub position: Position,
-	pub direction: Array2<bool>,
-	pub damage: Array2<f32>,
-	pub shield: Array2<f32>,
-	pub state: Array2<i32>,
-	pub character: Array2<i32>,
-	pub last_attack_landed: Array2<i32>,
-	pub combo_count: Array2<i32>,
-	pub last_hit_by: Array2<i32>,
-	pub stocks: Array2<i32>,
+	pub direction: Vec<Vec<bool>>,
+	pub damage: Vec<Vec<f32>>,
+	pub shield: Vec<Vec<f32>>,
+	pub state: Vec<Vec<i32>>,
+	pub character: Vec<Vec<i32>>,
+	pub last_attack_landed: Vec<Vec<i32>>,
+	pub combo_count: Vec<Vec<i32>>,
+	pub last_hit_by: Vec<Vec<i32>>,
+	pub stocks: Vec<Vec<i32>>,
 	pub v0_2: Option<PostV0_2>,
 }
 
 pub struct ItemV3_6 {
-	pub owner: Array2<i32>,
+	pub owner: Vec<Vec<i32>>,
 }
 
 pub struct ItemV3_2 {
-	pub misc: Array2<i32>,
+	pub misc: Vec<Vec<i32>>,
 	pub v3_6: Option<ItemV3_6>,
 }
 
 pub struct Item {
-	pub id: Array2<i32>,
-	pub r#type: Array2<i32>,
-	pub state: Array2<i32>,
-	pub direction: Array2<bool>,
+	pub id: Vec<Vec<i32>>,
+	pub r#type: Vec<Vec<i32>>,
+	pub state: Vec<Vec<i32>>,
+	pub direction: Vec<Vec<bool>>,
 	pub position: Position,
 	pub velocity: Velocity,
-	pub damage: Array2<i32>,
-	pub timer: Array2<f32>,
+	pub damage: Vec<Vec<i32>>,
+	pub timer: Vec<Vec<f32>>,
 	pub v3_2: Option<ItemV3_2>,
 }
 
@@ -139,15 +137,23 @@ pub struct Frames {
 	pub item: Option<Item>,
 }
 
-fn start(dim: usize, _start: frame::Start) -> Start {
+fn vec2<X>(dim: (usize, usize)) -> Vec<Vec<X>> {
+	let mut v = Vec::with_capacity(dim.0);
+	for _ in 0 .. dim.0 {
+		v.push(Vec::with_capacity(dim.1));
+	}
+	v
+}
+
+fn start(_dim: usize, _start: frame::Start) -> Start {
 	Start {
-		random_seed: Array1::zeros(dim),
+		random_seed: Vec::new(),
 	}
 }
 
-fn end_v3_7(dim: usize, _end: frame::EndV3_7) -> EndV3_7 {
+fn end_v3_7(_dim: usize, _end: frame::EndV3_7) -> EndV3_7 {
 	EndV3_7 {
-		latest_finalized_frame: Array1::zeros(dim),
+		latest_finalized_frame: Vec::new(),
 	}
 }
 
@@ -159,13 +165,13 @@ fn end(dim: usize, end: frame::End) -> End {
 
 fn pre_v1_4(dim: (usize, usize), _pre: frame::PreV1_4) -> PreV1_4 {
 	PreV1_4 {
-		damage: Array2::zeros(dim),
+		damage: vec2(dim),
 	}
 }
 
 fn pre_v1_2(dim: (usize, usize), pre: frame::PreV1_2) -> PreV1_2 {
 	PreV1_2 {
-		raw_analog_x: Array2::zeros(dim),
+		raw_analog_x: vec2(dim),
 		v1_4: pre.v1_4.map(|v1_4| pre_v1_4(dim, v1_4)),
 	}
 }
@@ -175,31 +181,31 @@ fn pre<const N: usize>(frames: &Vec<frame::Frame<N>>) -> Pre {
 	let f = frames[0].ports[0].leader.pre;
 	Pre {
 		position: Position {
-			x: Array2::zeros(dim),
-			y: Array2::zeros(dim),
+			x: vec2(dim),
+			y: vec2(dim),
 		},
-		direction: Array2::from_elem(dim, false),
+		direction: vec2(dim),
 		joystick: Position {
-			x: Array2::zeros(dim),
-			y: Array2::zeros(dim),
+			x: vec2(dim),
+			y: vec2(dim),
 		},
 		cstick: Position {
-			x: Array2::zeros(dim),
-			y: Array2::zeros(dim),
+			x: vec2(dim),
+			y: vec2(dim),
 		},
 		triggers: Triggers {
-			logical: Array2::zeros(dim),
+			logical: vec2(dim),
 			physical: TriggersPhysical {
-				l: Array2::zeros(dim),
-				r: Array2::zeros(dim),
+				l: vec2(dim),
+				r: vec2(dim),
 			},
 		},
-		random_seed: Array2::zeros(dim),
+		random_seed: vec2(dim),
 		buttons: Buttons {
-			logical: Array2::zeros(dim),
-			physical: Array2::zeros(dim),
+			logical: vec2(dim),
+			physical: vec2(dim),
 		},
-		state: Array2::zeros(dim),
+		state: vec2(dim),
 		v1_2: f.v1_2.map(|v1_2| pre_v1_2(dim, v1_2)),
 	}
 }
@@ -208,12 +214,12 @@ fn post_v3_5(dim: (usize, usize), _post: frame::PostV3_5) -> PostV3_5 {
 	PostV3_5 {
 		velocities: Velocities {
 			autogenous: Velocity {
-				x: Array2::zeros(dim),
-				y: Array2::zeros(dim),
+				x: vec2(dim),
+				y: vec2(dim),
 			},
 			knockback: Velocity {
-				x: Array2::zeros(dim),
-				y: Array2::zeros(dim),
+				x: vec2(dim),
+				y: vec2(dim),
 			},
 		},
 	}
@@ -221,26 +227,26 @@ fn post_v3_5(dim: (usize, usize), _post: frame::PostV3_5) -> PostV3_5 {
 
 fn post_v2_1(dim: (usize, usize), post: frame::PostV2_1) -> PostV2_1 {
 	PostV2_1 {
-		hurtbox_state: Array2::zeros(dim),
+		hurtbox_state: vec2(dim),
 		v3_5: post.v3_5.map(|v3_5| post_v3_5(dim, v3_5)),
 	}
 }
 
 fn post_v2_0(dim: (usize, usize), post: frame::PostV2_0) -> PostV2_0 {
 	PostV2_0 {
-		flags: Array2::zeros(dim),
-		misc_as: Array2::zeros(dim),
-		airborne: Array2::from_elem(dim, false),
-		ground: Array2::zeros(dim),
-		jumps: Array2::zeros(dim),
-		l_cancel: Array2::zeros(dim),
+		flags: vec2(dim),
+		misc_as: vec2(dim),
+		airborne: vec2(dim),
+		ground: vec2(dim),
+		jumps: vec2(dim),
+		l_cancel: vec2(dim),
 		v2_1: post.v2_1.map(|v2_1| post_v2_1(dim, v2_1)),
 	}
 }
 
 fn post_v0_2(dim: (usize, usize), post: frame::PostV0_2) -> PostV0_2 {
 	PostV0_2 {
-		state_age: Array2::zeros(dim),
+		state_age: vec2(dim),
 		v2_0: post.v2_0.map(|v2_0| post_v2_0(dim, v2_0)),
 	}
 }
@@ -250,196 +256,198 @@ fn post<const N: usize>(frames: &Vec<frame::Frame<N>>) -> Post {
 	let f = frames[0].ports[0].leader.post;
 	Post {
 		position: Position {
-			x: Array2::zeros(dim),
-			y: Array2::zeros(dim),
+			x: vec2(dim),
+			y: vec2(dim),
 		},
-		direction: Array2::from_elem(dim, false),
-		damage: Array2::zeros(dim),
-		shield: Array2::zeros(dim),
-		state: Array2::zeros(dim),
-		character: Array2::zeros(dim),
-		last_attack_landed: Array2::zeros(dim),
-		combo_count: Array2::zeros(dim),
-		last_hit_by: Array2::zeros(dim),
-		stocks: Array2::zeros(dim),
+		direction: vec2(dim),
+		damage: vec2(dim),
+		shield: vec2(dim),
+		state: vec2(dim),
+		character: vec2(dim),
+		last_attack_landed: vec2(dim),
+		combo_count: vec2(dim),
+		last_hit_by: vec2(dim),
+		stocks: vec2(dim),
 		v0_2: f.v0_2.map(|v0_2| post_v0_2(dim, v0_2)),
 	}
 }
 
 fn item_v3_6(dim: (usize, usize), _v3_6: frame::ItemV3_6) -> ItemV3_6 {
 	ItemV3_6 {
-		owner: Array2::zeros(dim),
+		owner: vec2(dim),
 	}
 }
 
 fn item_v3_2(dim: (usize, usize), v3_2: frame::ItemV3_2) -> ItemV3_2 {
 	ItemV3_2 {
-		misc: Array2::zeros(dim),
+		misc: vec2(dim),
 		v3_6: v3_2.v3_6.map(|v3_6| item_v3_6(dim, v3_6)),
 	}
 }
 
 fn item(dim: (usize, usize), item: &frame::Item) -> Item {
 	Item {
-		id: Array2::from_elem(dim, -1),
-		r#type: Array2::zeros(dim),
-		state: Array2::zeros(dim),
-		direction: Array2::from_elem(dim, false),
+		id: vec2(dim),
+		r#type: vec2(dim),
+		state: vec2(dim),
+		direction: vec2(dim),
 		position: Position {
-			x: Array2::zeros(dim),
-			y: Array2::zeros(dim),
+			x: vec2(dim),
+			y: vec2(dim),
 		},
 		velocity: Velocity {
-			x: Array2::zeros(dim),
-			y: Array2::zeros(dim),
+			x: vec2(dim),
+			y: vec2(dim),
 		},
-		damage: Array2::zeros(dim),
-		timer: Array2::zeros(dim),
+		damage: vec2(dim),
+		timer: vec2(dim),
 		v3_2: item.v3_2.map(|v3_2| item_v3_2(dim, v3_2)),
 	}
 }
 
-fn transform_pre_v1_4(src: &frame::PreV1_4, dst: &mut PreV1_4, i: (usize, usize)) {
-	dst.damage[i] = src.damage;
+fn transform_pre_v1_4(src: &frame::PreV1_4, dst: &mut PreV1_4, i: usize) {
+	dst.damage[i].push(src.damage);
 }
 
-fn transform_pre_v1_2(src: &frame::PreV1_2, dst: &mut PreV1_2, i: (usize, usize)) {
-	dst.raw_analog_x[i] = src.raw_analog_x as i32;
+fn transform_pre_v1_2(src: &frame::PreV1_2, dst: &mut PreV1_2, i: usize) {
+	dst.raw_analog_x[i].push(src.raw_analog_x as i32);
 	if let Some(ref mut dst) = dst.v1_4 {
 		transform_pre_v1_4(&src.v1_4.unwrap(), dst, i);
 	}
 }
 
-fn transform_pre(src: &frame::Pre, dst: &mut Pre, i: (usize, usize)) {
-	dst.position.x[i] = src.position.x;
-	dst.position.y[i] = src.position.y;
-	dst.direction[i] = src.direction.0 == 1;
-	dst.joystick.x[i] = src.joystick.x;
-	dst.joystick.y[i] = src.joystick.y;
-	dst.cstick.x[i] = src.cstick.x;
-	dst.cstick.y[i] = src.cstick.y;
-	dst.triggers.logical[i] = src.triggers.logical;
-	dst.triggers.physical.l[i] = src.triggers.physical.l;
-	dst.triggers.physical.r[i] = src.triggers.physical.r;
-	dst.random_seed[i] = src.random_seed as i32;
-	dst.buttons.logical[i] = src.buttons.logical.0 as i32;
-	dst.buttons.physical[i] = src.buttons.physical.0 as i32;
-	dst.state[i] = {
+fn transform_pre(src: &frame::Pre, dst: &mut Pre, i: usize) {
+	dst.position.x[i].push(src.position.x);
+	dst.position.y[i].push(src.position.y);
+	dst.direction[i].push(src.direction.0 == 1);
+	dst.joystick.x[i].push(src.joystick.x);
+	dst.joystick.y[i].push(src.joystick.y);
+	dst.cstick.x[i].push(src.cstick.x);
+	dst.cstick.y[i].push(src.cstick.y);
+	dst.triggers.logical[i].push(src.triggers.logical);
+	dst.triggers.physical.l[i].push(src.triggers.physical.l);
+	dst.triggers.physical.r[i].push(src.triggers.physical.r);
+	dst.random_seed[i].push(src.random_seed as i32);
+	dst.buttons.logical[i].push(src.buttons.logical.0 as i32);
+	dst.buttons.physical[i].push(src.buttons.physical.0 as i32);
+	dst.state[i].push({
 		let s: u16 = src.state.into();
 		s as i32
-	};
+	});
 	if let Some(ref mut dst) = dst.v1_2 {
 		transform_pre_v1_2(&src.v1_2.unwrap(), dst, i);
 	}
 }
 
-fn transform_post_v3_5(src: &frame::PostV3_5, dst: &mut PostV3_5, i: (usize, usize)) {
-	dst.velocities.autogenous.x[i] = src.velocities.autogenous.x;
-	dst.velocities.autogenous.y[i] = src.velocities.autogenous.y;
-	dst.velocities.knockback.x[i] = src.velocities.knockback.x;
-	dst.velocities.knockback.y[i] = src.velocities.knockback.y;
+fn transform_post_v3_5(src: &frame::PostV3_5, dst: &mut PostV3_5, i: usize) {
+	dst.velocities.autogenous.x[i].push(src.velocities.autogenous.x);
+	dst.velocities.autogenous.y[i].push(src.velocities.autogenous.y);
+	dst.velocities.knockback.x[i].push(src.velocities.knockback.x);
+	dst.velocities.knockback.y[i].push(src.velocities.knockback.y);
 }
 
-fn transform_post_v2_1(src: &frame::PostV2_1, dst: &mut PostV2_1, i: (usize, usize)) {
-	dst.hurtbox_state[i] = src.hurtbox_state.0 as i32;
+fn transform_post_v2_1(src: &frame::PostV2_1, dst: &mut PostV2_1, i: usize) {
+	dst.hurtbox_state[i].push(src.hurtbox_state.0 as i32);
 	if let Some(ref mut dst) = dst.v3_5 {
 		transform_post_v3_5(&src.v3_5.unwrap(), dst, i);
 	}
 }
 
-fn transform_post_v2_0(src: &frame::PostV2_0, dst: &mut PostV2_0, i: (usize, usize)) {
-	dst.flags[i] = src.flags.0 as i64;
-	dst.misc_as[i] = src.misc_as;
-	dst.airborne[i] = src.airborne;
-	dst.ground[i] = src.ground as i32;
-	dst.jumps[i] = src.jumps as i32;
-	dst.l_cancel[i] = match src.l_cancel {
+fn transform_post_v2_0(src: &frame::PostV2_0, dst: &mut PostV2_0, i: usize) {
+	dst.flags[i].push(src.flags.0 as i64);
+	dst.misc_as[i].push(src.misc_as);
+	dst.airborne[i].push(src.airborne);
+	dst.ground[i].push(src.ground as i32);
+	dst.jumps[i].push(src.jumps as i32);
+	dst.l_cancel[i].push(match src.l_cancel {
 		None => 0,
 		Some(true) => 1,
 		Some(false) => 2,
-	};
+	});
 	if let Some(ref mut dst) = dst.v2_1 {
 		transform_post_v2_1(&src.v2_1.unwrap(), dst, i);
 	}
 }
 
-fn transform_post_v0_2(src: &frame::PostV0_2, dst: &mut PostV0_2, i: (usize, usize)) {
-	dst.state_age[i] = src.state_age;
+fn transform_post_v0_2(src: &frame::PostV0_2, dst: &mut PostV0_2, i: usize) {
+	dst.state_age[i].push(src.state_age);
 	if let Some(ref mut dst) = dst.v2_0 {
 		transform_post_v2_0(&src.v2_0.unwrap(), dst, i);
 	}
 }
 
-fn transform_post(src: &frame::Post, dst: &mut Post, i: (usize, usize)) {
-	dst.position.x[i] = src.position.x;
-	dst.position.y[i] = src.position.y;
-	dst.direction[i] = src.direction.0 == 1;
-	dst.damage[i] = src.damage;
-	dst.shield[i] = src.shield;
-	dst.state[i] = {
+fn transform_post(src: &frame::Post, dst: &mut Post, i: usize) {
+	dst.position.x[i].push(src.position.x);
+	dst.position.y[i].push(src.position.y);
+	dst.direction[i].push(src.direction.0 == 1);
+	dst.damage[i].push(src.damage);
+	dst.shield[i].push(src.shield);
+	dst.state[i].push({
 		let s: u16 = src.state.into();
 		s as i32
-	};
-	dst.character[i] = src.character.0 as i32;
-	dst.last_attack_landed[i] = match src.last_attack_landed {
+	});
+	dst.character[i].push(src.character.0 as i32);
+	dst.last_attack_landed[i].push(match src.last_attack_landed {
 		Some(a) => a.0 as i32,
 		_ => 0,
-	};
-	dst.combo_count[i] = src.combo_count as i32;
-	dst.last_hit_by[i] = match src.last_hit_by {
+	});
+	dst.combo_count[i].push(src.combo_count as i32);
+	dst.last_hit_by[i].push(match src.last_hit_by {
 		Some(l) => l as i32,
 		_ => u8::MAX as i32,
-	};
-	dst.stocks[i] = src.stocks as i32;
+	});
+	dst.stocks[i].push(src.stocks as i32);
 	if let Some(ref mut dst) = dst.v0_2 {
 		transform_post_v0_2(&src.v0_2.unwrap(), dst, i);
 	}
 }
 
-fn transform_port(src: &frame::Data, dst: &mut Port, i: (usize, usize)) {
+fn transform_port(src: &frame::Data, dst: &mut Port, i: usize) {
 	transform_pre(&src.pre, &mut dst.pre, i);
 	transform_post(&src.post, &mut dst.post, i);
 }
 
-fn transform_item_v3_6(src: &frame::ItemV3_6, dst: &mut ItemV3_6, i: (usize, usize)) {
-	dst.owner[i] = match src.owner {
+fn transform_item_v3_6(src: &frame::ItemV3_6, dst: &mut ItemV3_6, i: usize) {
+	dst.owner[i].push(match src.owner {
 		Some(o) => o as i32,
 		_ => u8::MAX as i32,
-	}
+	});
 }
 
-fn transform_item_v3_2(src: &frame::ItemV3_2, dst: &mut ItemV3_2, i: (usize, usize)) {
-	dst.misc[i] = u32::from_le_bytes(src.misc) as i32;
+fn transform_item_v3_2(src: &frame::ItemV3_2, dst: &mut ItemV3_2, i: usize) {
+	dst.misc[i].push(u32::from_le_bytes(src.misc) as i32);
 	if let Some(ref mut dst) = dst.v3_6 {
 		transform_item_v3_6(&src.v3_6.unwrap(), dst, i);
 	}
 }
 
-fn transform_item(src: &frame::Item, dst: &mut Item, i: (usize, usize)) {
-	dst.id[i] = src.id as i32;
-	dst.r#type[i] = src.r#type.0 as i32;
-	dst.state[i] = src.state as i32;
-	dst.direction[i] = src.direction.0 == 1;
-	dst.position.x[i] = src.position.x;
-	dst.velocity.y[i] = src.velocity.y;
-	dst.damage[i] = src.damage as i32;
-	dst.timer[i] = src.timer;
+fn transform_item(src: &frame::Item, dst: &mut Item, i: usize) {
+	dst.id[i].push(src.id as i32);
+	dst.r#type[i].push(src.r#type.0 as i32);
+	dst.state[i].push(src.state as i32);
+	dst.direction[i].push(src.direction.0 == 1);
+	dst.position.x[i].push(src.position.x);
+	dst.position.y[i].push(src.position.y);
+	dst.velocity.x[i].push(src.velocity.x);
+	dst.velocity.y[i].push(src.velocity.y);
+	dst.damage[i].push(src.damage as i32);
+	dst.timer[i].push(src.timer);
 	if let Some(ref mut dst) = dst.v3_2 {
 		transform_item_v3_2(&src.v3_2.unwrap(), dst, i);
 	}
 }
 
-fn transform_start(src: &frame::Start, dst: &mut Start, i: usize) {
-	dst.random_seed[i] = src.random_seed as i32;
+fn transform_start(src: &frame::Start, dst: &mut Start) {
+	dst.random_seed.push(src.random_seed as i32);
 }
 
-fn transform_end_v3_7(src: &frame::EndV3_7, dst: &mut EndV3_7, i: usize) {
-	dst.latest_finalized_frame[i] = src.latest_finalized_frame;
+fn transform_end_v3_7(src: &frame::EndV3_7, dst: &mut EndV3_7) {
+	dst.latest_finalized_frame.push(src.latest_finalized_frame);
 }
 
-fn transform_end(src: &frame::End, dst: &mut End, i: usize) {
+fn transform_end(src: &frame::End, dst: &mut End) {
 	if let Some(ref mut dst) = dst.v3_7 {
-		transform_end_v3_7(&src.v3_7.unwrap(), dst, i);
+		transform_end_v3_7(&src.v3_7.unwrap(), dst);
 	}
 }
 
@@ -463,24 +471,24 @@ fn transform_frames<const N: usize>(src: &Vec<frame::Frame<N>>) -> Frames {
 
 	for (f_idx, f) in src.iter().enumerate() {
 		if let Some(ref mut start) = dst.start {
-			transform_start(&f.start.unwrap(), start, f_idx);
+			transform_start(&f.start.unwrap(), start);
 		}
 
 		if let Some(ref mut end) = dst.end {
-			transform_end(&f.end.unwrap(), end, f_idx);
+			transform_end(&f.end.unwrap(), end);
 		}
 
 		for (p_idx, p) in f.ports.iter().enumerate() {
-			transform_port(&p.leader, &mut dst.leader, (p_idx, f_idx));
+			transform_port(&p.leader, &mut dst.leader, p_idx);
 			if let Some(follower) = &p.follower {
-				transform_port(&follower, &mut dst.follower, (p_idx, f_idx));
+				transform_port(&follower, &mut dst.follower, p_idx);
 			}
 		}
 
 		if let Some(ref mut dst_item) = dst.item {
 			let items = f.items.as_ref().unwrap();
-			for (i_idx, src_item) in items.iter().enumerate() {
-				transform_item(&src_item, dst_item, (f_idx, i_idx));
+			for src_item in items.iter() {
+				transform_item(&src_item, dst_item, f_idx);
 			}
 		}
 	}
