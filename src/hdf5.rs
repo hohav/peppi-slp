@@ -255,6 +255,7 @@ fn transform_pre_v1_2(src: &frame::PreV1_2, dst: &mut PreV1_2, i: (usize, usize)
 }
 
 fn transform_pre(src: &frame::Pre, dst: &mut Pre, i: (usize, usize)) {
+	dst.position[i] = src.position;
 	dst.direction[i] = src.direction.0;
 	dst.joystick[i] = src.joystick;
 	dst.cstick[i] = src.cstick;
