@@ -30,7 +30,7 @@ struct Opts {
 fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> Result<(), Box<dyn Error>> {
 	let dir = dir.as_ref();
 	fs::create_dir_all(dir)?;
-	fs::write(dir.join("metadata.json"), serde_json::to_string(&game.metadata)?)?;
+	fs::write(dir.join("metadata.json"), serde_json::to_string(&game.metadata_raw)?)?;
 	fs::write(dir.join("start.json"), serde_json::to_string(&game.start)?)?;
 	fs::write(dir.join("end.json"), serde_json::to_string(&game.end)?)?;
 	if !skip_frames {
