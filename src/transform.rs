@@ -65,8 +65,13 @@ pub struct Pre {
 	pub v1_2: Option<PreV1_2>,
 }
 
+pub struct PostV3_8 {
+	pub hitlag: Vec<Vec<f32>>,
+}
+
 pub struct PostV3_5 {
 	pub velocities: Velocities,
+	pub v3_8: Option<PostV3_8>,
 }
 
 pub struct PostV2_1 {
@@ -210,7 +215,13 @@ fn pre<const N: usize>(frames: &Vec<frame::Frame<N>>) -> Pre {
 	}
 }
 
-fn post_v3_5(dim: (usize, usize), _post: frame::PostV3_5) -> PostV3_5 {
+fn post_v3_8(dim: (usize, usize), _post: frame::PostV3_8) -> PostV3_8 {
+	PostV3_8 {
+		hitlag: vec2(dim),
+	}
+}
+
+fn post_v3_5(dim: (usize, usize), post: frame::PostV3_5) -> PostV3_5 {
 	PostV3_5 {
 		velocities: Velocities {
 			autogenous: Velocity {
@@ -222,6 +233,7 @@ fn post_v3_5(dim: (usize, usize), _post: frame::PostV3_5) -> PostV3_5 {
 				y: vec2(dim),
 			},
 		},
+		v3_8: post.v3_8.map(|v3_8| post_v3_8(dim, v3_8)),
 	}
 }
 
@@ -339,11 +351,18 @@ fn transform_pre(src: &frame::Pre, dst: &mut Pre, i: usize) {
 	}
 }
 
+fn transform_post_v3_8(src: &frame::PostV3_8, dst: &mut PostV3_8, i: usize) {
+	dst.hitlag[i].push(src.hitlag);
+}
+
 fn transform_post_v3_5(src: &frame::PostV3_5, dst: &mut PostV3_5, i: usize) {
 	dst.velocities.autogenous.x[i].push(src.velocities.autogenous.x);
 	dst.velocities.autogenous.y[i].push(src.velocities.autogenous.y);
 	dst.velocities.knockback.x[i].push(src.velocities.knockback.x);
 	dst.velocities.knockback.y[i].push(src.velocities.knockback.y);
+	if let Some(ref mut dst) = dst.v3_8 {
+		transform_post_v3_8(&src.v3_8.unwrap(), dst, i);
+	}
 }
 
 fn transform_post_v2_1(src: &frame::PostV2_1, dst: &mut PostV2_1, i: usize) {

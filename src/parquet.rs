@@ -84,6 +84,9 @@ optional group v0_2 {
 						required float y;
 					}
 				}
+				optional group v3_8 {
+					required float hitlag;
+				}
 			}
 		}
 	}
@@ -221,6 +224,10 @@ fn write_post(rgw: &mut Box<dyn RowGroupWriter>, post: &transform::Post, p: usiz
 					write_f32(rgw, &v3_5.velocities.autogenous.y[p], &dls, &rls)?;
 					write_f32(rgw, &v3_5.velocities.knockback.x[p], &dls, &rls)?;
 					write_f32(rgw, &v3_5.velocities.knockback.y[p], &dls, &rls)?;
+					if let Some(v3_8) = &v3_5.v3_8 {
+						let dls: Vec<_> = dls.iter().map(|x| x + 1).collect();
+						write_f32(rgw, &v3_8.hitlag[p], &dls, &rls)?;
+					}
 				}
 			}
 		}
