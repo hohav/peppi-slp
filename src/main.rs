@@ -5,13 +5,15 @@ use std::io::Write;
 use clap::{App, Arg};
 use jmespatch::ToJmespath;
 
-use peppi::game::Game;
+use peppi::game::{Game, SlippiVersion};
 
 mod parquet;
 mod transform;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+const MAX_SUPPORTED_VERSION: SlippiVersion = SlippiVersion(3, 8, 0);
 
 #[derive(Copy, Clone)]
 enum Format {
@@ -28,6 +30,11 @@ struct Opts {
 }
 
 fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> Result<(), Box<dyn Error>> {
+	if game.start.slippi.version > MAX_SUPPORTED_VERSION {
+		eprintln!("WARNING: unsupported Slippi version ({} > {}). Unknown fields will be omitted from output!",
+			game.start.slippi.version, MAX_SUPPORTED_VERSION);
+	}
+
 	let dir = dir.as_ref();
 	fs::create_dir_all(dir)?;
 	fs::write(dir.join("metadata.json"), serde_json::to_string(&game.metadata_raw)?)?;
