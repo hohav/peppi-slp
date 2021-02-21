@@ -151,87 +151,88 @@ fn write_f32(rgw: &mut Box<dyn RowGroupWriter>, data: &[f32], dls: &[i16], rls: 
 }
 
 fn write_pre(rgw: &mut Box<dyn RowGroupWriter>, pre: &transform::Pre, p: usize) -> Result<(), Box<dyn Error>> {
-	let dls: Vec<_> = pre.position.x[0].iter().map(|_| 1i16).collect();
+	let dls: Vec<Vec<_>> =
+		(0i16 .. 4)
+		.map(|n| pre.position.x[0].iter().map(|_| n).collect())
+		.collect();
 	let rls = {
 		let mut x: Vec<_> = pre.position.x[0].iter().map(|_| 1i16).collect();
 		x[0] = 0;
 		x
 	};
 
-	write_f32(rgw, &pre.position.x[p], &dls, &rls)?;
-	write_f32(rgw, &pre.position.y[p], &dls, &rls)?;
-	write_bool(rgw, &pre.direction[p], &dls, &rls)?;
-	write_f32(rgw, &pre.joystick.x[p], &dls, &rls)?;
-	write_f32(rgw, &pre.joystick.y[p], &dls, &rls)?;
-	write_f32(rgw, &pre.cstick.x[p], &dls, &rls)?;
-	write_f32(rgw, &pre.cstick.y[p], &dls, &rls)?;
-	write_f32(rgw, &pre.triggers.logical[p], &dls, &rls)?;
-	write_f32(rgw, &pre.triggers.physical.l[p], &dls, &rls)?;
-	write_f32(rgw, &pre.triggers.physical.r[p], &dls, &rls)?;
-	write_i32(rgw, &pre.random_seed[p], &dls, &rls)?;
-	write_i32(rgw, &pre.buttons.physical[p], &dls, &rls)?;
-	write_i32(rgw, &pre.buttons.logical[p], &dls, &rls)?;
-	write_i32(rgw, &pre.state[p], &dls, &rls)?;
+	write_f32(rgw, &pre.position.x[p], &dls[1], &rls)?;
+	write_f32(rgw, &pre.position.y[p], &dls[1], &rls)?;
+	write_bool(rgw, &pre.direction[p], &dls[1], &rls)?;
+	write_f32(rgw, &pre.joystick.x[p], &dls[1], &rls)?;
+	write_f32(rgw, &pre.joystick.y[p], &dls[1], &rls)?;
+	write_f32(rgw, &pre.cstick.x[p], &dls[1], &rls)?;
+	write_f32(rgw, &pre.cstick.y[p], &dls[1], &rls)?;
+	write_f32(rgw, &pre.triggers.logical[p], &dls[1], &rls)?;
+	write_f32(rgw, &pre.triggers.physical.l[p], &dls[1], &rls)?;
+	write_f32(rgw, &pre.triggers.physical.r[p], &dls[1], &rls)?;
+	write_i32(rgw, &pre.random_seed[p], &dls[1], &rls)?;
+	write_i32(rgw, &pre.buttons.physical[p], &dls[1], &rls)?;
+	write_i32(rgw, &pre.buttons.logical[p], &dls[1], &rls)?;
+	write_i32(rgw, &pre.state[p], &dls[1], &rls)?;
 
 	if let Some(v1_2) = &pre.v1_2 {
-		let dls: Vec<_> = dls.iter().map(|x| x + 1).collect();
-		write_i32(rgw, &v1_2.raw_analog_x[p], &dls, &rls)?;
+		write_i32(rgw, &v1_2.raw_analog_x[p], &dls[2], &rls)?;
 		if let Some(v1_4) = &v1_2.v1_4 {
-			let dls: Vec<_> = dls.iter().map(|x| x + 1).collect();
-			write_f32(rgw, &v1_4.damage[p], &dls, &rls)?;
+			write_f32(rgw, &v1_4.damage[p], &dls[3], &rls)?;
 		}
 	}
+
 	Ok(())
 }
 
 fn write_post(rgw: &mut Box<dyn RowGroupWriter>, post: &transform::Post, p: usize) -> Result<(), Box<dyn Error>> {
-	let dls: Vec<_> = post.position.x[0].iter().map(|_| 1i16).collect();
+	let dls: Vec<Vec<_>> =
+		(0i16 .. 7)
+		.map(|n| post.position.x[0].iter().map(|_| n).collect())
+		.collect();
 	let rls = {
-		let mut x: Vec<_> = post.position.x[0].iter().map(|_| 1i16).collect();
-		x[0] = 0;
-		x
+		let mut rls: Vec<_> = post.position.x[0].iter().map(|_| 1i16).collect();
+		rls[0] = 0;
+		rls
 	};
 
-	write_f32(rgw, &post.position.x[p], &dls, &rls)?;
-	write_f32(rgw, &post.position.y[p], &dls, &rls)?;
-	write_bool(rgw, &post.direction[p], &dls, &rls)?;
-	write_f32(rgw, &post.damage[p], &dls, &rls)?;
-	write_f32(rgw, &post.shield[p], &dls, &rls)?;
-	write_i32(rgw, &post.state[p], &dls, &rls)?;
-	write_i32(rgw, &post.character[p], &dls, &rls)?;
-	write_i32(rgw, &post.last_attack_landed[p], &dls, &rls)?;
-	write_i32(rgw, &post.combo_count[p], &dls, &rls)?;
-	write_i32(rgw, &post.last_hit_by[p], &dls, &rls)?;
-	write_i32(rgw, &post.stocks[p], &dls, &rls)?;
+	write_f32(rgw, &post.position.x[p], &dls[1], &rls)?;
+	write_f32(rgw, &post.position.y[p], &dls[1], &rls)?;
+	write_bool(rgw, &post.direction[p], &dls[1], &rls)?;
+	write_f32(rgw, &post.damage[p], &dls[1], &rls)?;
+	write_f32(rgw, &post.shield[p], &dls[1], &rls)?;
+	write_i32(rgw, &post.state[p], &dls[1], &rls)?;
+	write_i32(rgw, &post.character[p], &dls[1], &rls)?;
+	write_i32(rgw, &post.last_attack_landed[p], &dls[1], &rls)?;
+	write_i32(rgw, &post.combo_count[p], &dls[1], &rls)?;
+	write_i32(rgw, &post.last_hit_by[p], &dls[1], &rls)?;
+	write_i32(rgw, &post.stocks[p], &dls[1], &rls)?;
 
 	if let Some(v0_2) = &post.v0_2 {
-		let dls: Vec<_> = dls.iter().map(|x| x + 1).collect();
-		write_f32(rgw, &v0_2.state_age[p], &dls, &rls)?;
+		write_f32(rgw, &v0_2.state_age[p], &dls[2], &rls)?;
 		if let Some(v2_0) = &v0_2.v2_0 {
-			let dls: Vec<_> = dls.iter().map(|x| x + 1).collect();
-			write_i64(rgw, &v2_0.flags[p], &dls, &rls)?;
-			write_f32(rgw, &v2_0.misc_as[p], &dls, &rls)?;
-			write_bool(rgw, &v2_0.airborne[p], &dls, &rls)?;
-			write_i32(rgw, &v2_0.ground[p], &dls, &rls)?;
-			write_i32(rgw, &v2_0.jumps[p], &dls, &rls)?;
-			write_i32(rgw, &v2_0.l_cancel[p], &dls, &rls)?;
+			write_i64(rgw, &v2_0.flags[p], &dls[3], &rls)?;
+			write_f32(rgw, &v2_0.misc_as[p], &dls[3], &rls)?;
+			write_bool(rgw, &v2_0.airborne[p], &dls[3], &rls)?;
+			write_i32(rgw, &v2_0.ground[p], &dls[3], &rls)?;
+			write_i32(rgw, &v2_0.jumps[p], &dls[3], &rls)?;
+			write_i32(rgw, &v2_0.l_cancel[p], &dls[3], &rls)?;
 			if let Some(v2_1) = &v2_0.v2_1 {
-				let dls: Vec<_> = dls.iter().map(|x| x + 1).collect();
-				write_i32(rgw, &v2_1.hurtbox_state[p], &dls, &rls)?;
+				write_i32(rgw, &v2_1.hurtbox_state[p], &dls[4], &rls)?;
 				if let Some(v3_5) = &v2_1.v3_5 {
-					let dls: Vec<_> = dls.iter().map(|x| x + 1).collect();
-					write_f32(rgw, &v3_5.velocities.autogenous.x[p], &dls, &rls)?;
-					write_f32(rgw, &v3_5.velocities.autogenous.y[p], &dls, &rls)?;
-					write_f32(rgw, &v3_5.velocities.knockback.x[p], &dls, &rls)?;
-					write_f32(rgw, &v3_5.velocities.knockback.y[p], &dls, &rls)?;
+					write_f32(rgw, &v3_5.velocities.autogenous.x[p], &dls[5], &rls)?;
+					write_f32(rgw, &v3_5.velocities.autogenous.y[p], &dls[5], &rls)?;
+					write_f32(rgw, &v3_5.velocities.knockback.x[p], &dls[5], &rls)?;
+					write_f32(rgw, &v3_5.velocities.knockback.y[p], &dls[5], &rls)?;
 					if let Some(v3_8) = &v3_5.v3_8 {
-						let dls: Vec<_> = dls.iter().map(|x| x + 1).collect();
-						write_f32(rgw, &v3_8.hitlag[p], &dls, &rls)?;
+						write_f32(rgw, &v3_8.hitlag[p], &dls[6], &rls)?;
 					}
 				}
 			}
 		}
 	}
+
 	Ok(())
 }
 
