@@ -21,7 +21,6 @@ debug-assertions = false
 overflow-checks = false
 lto = true
 codegen-units = 1
-panic = "abort"
 incremental = false
 rpath = false
 
