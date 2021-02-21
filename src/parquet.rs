@@ -41,12 +41,15 @@ required group buttons {
 	required int32 logical (UINT_32);
 }
 required int32 state (UINT_16);
-optional group v1_2 {
-	required int32 raw_analog_x (UINT_8);
-	optional group v1_4 {
-		required float damage;
-	}
-}";
+";
+
+const SCHEMA_FRAME_PRE_V1_2: &str = "
+required int32 raw_analog_x (UINT_8);
+";
+
+const SCHEMA_FRAME_PRE_V1_4: &str = "
+required float damage;
+";
 
 const SCHEMA_FRAME_POST: &str = "
 required group position {
@@ -62,61 +65,66 @@ required int32 last_attack_landed (UINT_8);
 required int32 combo_count (UINT_8);
 required int32 last_hit_by (UINT_8);
 required int32 stocks (UINT_8);
-optional group v0_2 {
-	required float state_age;
-	optional group v2_0 {
-		required int64 flags (UINT_64);
-		required float misc_as;
-		required boolean airborne;
-		required int32 ground (UINT_16);
-		required int32 jumps (UINT_8);
-		required int32 l_cancel (UINT_8);
-		optional group v2_1 {
-			required int32 hurtbox_state (UINT_8);
-			optional group v3_5 {
-				required group velocities {
-					required group autogenous {
-						required float x;
-						required float y;
-					}
-					required group knockback {
-						required float x;
-						required float y;
-					}
-				}
-				optional group v3_8 {
-					required float hitlag;
-				}
-			}
-		}
-	}
-}";
+";
 
-const SCHEMA_ITEM_DATA: &str = "
-message item_data {
-	repeated group items {
-		required int32 id (UINT_32);
-		required int32 type (UINT_16);
-		required int32 state (UINT_8);
-		required boolean direction;
-		required group position {
-			required float x;
-			required float y;
-		}
-		required group velocity {
-			required float x;
-			required float y;
-		}
-		required int32 damage (UINT_16);
-		required float timer;
-		optional group v3_2 {
-			required int32 misc (UINT_32);
-			optional group v3_6 {
-				required int32 owner (UINT_8);
-			}
-		}
+const SCHEMA_FRAME_POST_V0_2: &str = "
+required float state_age;
+";
+
+const SCHEMA_FRAME_POST_V2_0: &str = "
+required int64 flags (UINT_64);
+required float misc_as;
+required boolean airborne;
+required int32 ground (UINT_16);
+required int32 jumps (UINT_8);
+required int32 l_cancel (UINT_8);
+";
+
+const SCHEMA_FRAME_POST_V2_1: &str = "
+required int32 hurtbox_state (UINT_8);
+";
+
+const SCHEMA_FRAME_POST_V3_5: &str = "
+required group velocities {
+	required group autogenous {
+		required float x;
+		required float y;
 	}
-}";
+	required group knockback {
+		required float x;
+		required float y;
+	}
+}
+";
+
+const SCHEMA_FRAME_POST_V3_8: &str = "
+required float hitlag;
+";
+
+const SCHEMA_ITEM: &str = "
+required int32 id (UINT_32);
+required int32 type (UINT_16);
+required int32 state (UINT_8);
+required boolean direction;
+required group position {
+	required float x;
+	required float y;
+}
+required group velocity {
+	required float x;
+	required float y;
+}
+required int32 damage (UINT_16);
+required float timer;
+";
+
+const SCHEMA_ITEM_V3_2: &str = "
+required int32 misc (UINT_32);
+";
+
+const SCHEMA_ITEM_V3_6: &str = "
+required int32 owner (UINT_8);
+";
 
 fn write_bool(rgw: &mut Box<dyn RowGroupWriter>, data: &[bool], dls: &[i16], rls: &[i16]) -> Result<(), Box<dyn Error>> {
 	let mut c = rgw.next_column()?.ok_or("no column")?;
@@ -372,21 +380,90 @@ fn write_item(rgw: &mut Box<dyn RowGroupWriter>, item: &transform::Item) -> Resu
 	Ok(())
 }
 
-pub fn write_frames<P: AsRef<path::Path>>(frames: &transform::Frames, path: P) -> Result<(), Box<dyn Error>> {
-	let schema_frame_data: String = format!("
-required group pre {{ {} }}
-required group post {{ {} }}",
-		SCHEMA_FRAME_PRE, SCHEMA_FRAME_POST);
+fn schema_frame_pre(frames: &transform::Frames) -> String {
+	let mut schema = String::from(SCHEMA_FRAME_PRE);
+	if let Some(v1_2) = &frames.leader.pre.v1_2 {
+		schema += "optional group v1_2 {";
+		schema += SCHEMA_FRAME_PRE_V1_2;
+		if let Some(_v1_4) = &v1_2.v1_4 {
+			schema += "optional group v1_2 {";
+			schema += SCHEMA_FRAME_PRE_V1_4;
+			schema += "}";
+		}
+		schema += "}";
+	}
+	schema
+}
 
-	let message_type = format!("
+fn schema_frame_post(frames: &transform::Frames) -> String {
+	let mut schema = String::from(SCHEMA_FRAME_POST);
+	if let Some(v0_2) = &frames.leader.post.v0_2 {
+		schema += "optional group v0_2 {";
+		schema += SCHEMA_FRAME_POST_V0_2;
+		if let Some(v2_0) = &v0_2.v2_0 {
+			schema += "optional group v2_0 {";
+			schema += SCHEMA_FRAME_POST_V2_0;
+			if let Some(v2_1) = &v2_0.v2_1 {
+				schema += "optional group v2_1 {";
+				schema += SCHEMA_FRAME_POST_V2_1;
+				if let Some(v3_5) = &v2_1.v3_5 {
+					schema += "optional group v3_5 {";
+					schema += SCHEMA_FRAME_POST_V3_5;
+					if let Some(_v3_8) = &v3_5.v3_8 {
+						schema += "optional group v3_8 {";
+						schema += SCHEMA_FRAME_POST_V3_8;
+						schema += "}";
+					}
+					schema += "}";
+				}
+				schema += "}";
+			}
+			schema += "}";
+		}
+		schema += "}";
+	}
+	schema
+}
+
+fn schema_frames(frames: &transform::Frames) -> String {
+	format!("
 message frame_data {{
 	required int32 port (UINT_8);
 	required boolean is_follower;
-	repeated group frames {{ {} }}
+	repeated group frames {{
+		required group pre {{ {} }}
+		required group post {{ {} }}
+	}}
 }}",
-		schema_frame_data);
+		schema_frame_pre(frames), schema_frame_post(frames))
+}
 
-	let schema = Arc::new(parse_message_type(&message_type)?);
+fn schema_item(item: &transform::Item) -> String {
+	let mut schema = String::from(SCHEMA_ITEM);
+	if let Some(v3_2) = &item.v3_2 {
+		schema += "optional group v3_2 {";
+		schema += SCHEMA_ITEM_V3_2;
+		if let Some(_v3_6) = &v3_2.v3_6 {
+			schema += "optional group v3_6 {";
+			schema += SCHEMA_ITEM_V3_6;
+			schema += "}";
+		}
+		schema += "}";
+	}
+	schema
+}
+
+fn schema_items(item: &transform::Item) -> String {
+	format!("
+message item_data {{
+	repeated group items {{ {} }}
+}}
+",
+		schema_item(item))
+}
+
+pub fn write_frames<P: AsRef<path::Path>>(frames: &transform::Frames, path: P) -> Result<(), Box<dyn Error>> {
+	let schema = Arc::new(parse_message_type(&schema_frames(frames))?);
 	let props = Arc::new(WriterProperties::builder()
 		.set_writer_version(parquet::file::properties::WriterVersion::PARQUET_2_0)
 		.set_dictionary_enabled(false)
@@ -425,7 +502,7 @@ message frame_data {{
 }
 
 pub fn write_items<P: AsRef<path::Path>>(item: &transform::Item, path: P) -> Result<(), Box<dyn Error>> {
-	let schema = Arc::new(parse_message_type(&SCHEMA_ITEM_DATA)?);
+	let schema = Arc::new(parse_message_type(&schema_items(item))?);
 	let props = Arc::new(WriterProperties::builder()
 		.set_writer_version(parquet::file::properties::WriterVersion::PARQUET_2_0)
 		.set_dictionary_enabled(false)
