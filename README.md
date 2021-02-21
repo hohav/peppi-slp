@@ -59,7 +59,8 @@ This creates a directory `foo` with the following files:
 start.json
 end.json
 metadata.json
-frames.hdf5
+frames.parquet
+items.parquet
 ```
 
-`frames.hdf5` stores the game's frame data in columnar [HDF5](https://www.hdfgroup.org/solutions/hdf5/) format. It will be several times larger than the original .slp file, but significantly smaller when compressed.
+Frame and item data are stored in columnar [Parquet](https://parquet.apache.org/) format. It will be larger than the original .slp file uncompressed, but smaller compressed.
