@@ -41,12 +41,13 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 	fs::write(dir.join("start.json"), serde_json::to_string(&game.start)?)?;
 	fs::write(dir.join("end.json"), serde_json::to_string(&game.end)?)?;
 	if !skip_frames {
-		let frames = transform::transform(&game);
+		let frames = transform::transform(&game.frames);
 		if let Some(item) = &frames.item {
 			parquet::write_items(item, dir.join("items.parquet"))?;
 		}
 		parquet::write_frames(&frames, dir.join("frames.parquet"))?;
 	}
+
 	Ok(())
 }
 

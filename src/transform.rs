@@ -515,8 +515,8 @@ fn transform_frames<const N: usize>(src: &Vec<frame::Frame<N>>) -> Frames {
 	dst
 }
 
-pub fn transform(game: &game::Game) -> Frames {
-	match &game.frames {
+pub fn transform(frames: &game::Frames) -> Frames {
+	match &frames {
 		game::Frames::P1(f) => transform_frames(f),
 		game::Frames::P2(f) => transform_frames(f),
 		game::Frames::P3(f) => transform_frames(f),
