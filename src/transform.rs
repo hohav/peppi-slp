@@ -1,4 +1,4 @@
-use peppi::{frame, game};
+use peppi::{frame, game, primitives::Direction};
 
 pub const MAX_ITEMS: usize = 16;
 
@@ -331,7 +331,7 @@ fn transform_pre_v1_2(src: &frame::PreV1_2, dst: &mut PreV1_2, i: usize) {
 fn transform_pre(src: &frame::Pre, dst: &mut Pre, i: usize) {
 	dst.position.x[i].push(src.position.x);
 	dst.position.y[i].push(src.position.y);
-	dst.direction[i].push(src.direction.0 == 1);
+	dst.direction[i].push(src.direction == Direction::Right);
 	dst.joystick.x[i].push(src.joystick.x);
 	dst.joystick.y[i].push(src.joystick.y);
 	dst.cstick.x[i].push(src.cstick.x);
@@ -398,7 +398,7 @@ fn transform_post_v0_2(src: &frame::PostV0_2, dst: &mut PostV0_2, i: usize) {
 fn transform_post(src: &frame::Post, dst: &mut Post, i: usize) {
 	dst.position.x[i].push(src.position.x);
 	dst.position.y[i].push(src.position.y);
-	dst.direction[i].push(src.direction.0 == 1);
+	dst.direction[i].push(src.direction == Direction::Right);
 	dst.damage[i].push(src.damage);
 	dst.shield[i].push(src.shield);
 	dst.state[i].push({
@@ -444,7 +444,7 @@ fn transform_item(src: &frame::Item, dst: &mut Item, i: usize) {
 	dst.id[i].push(src.id as i32);
 	dst.r#type[i].push(src.r#type.0 as i32);
 	dst.state[i].push(src.state as i32);
-	dst.direction[i].push(src.direction.0 == 1);
+	dst.direction[i].push(src.direction == Direction::Right);
 	dst.position.x[i].push(src.position.x);
 	dst.position.y[i].push(src.position.y);
 	dst.velocity.x[i].push(src.velocity.x);
