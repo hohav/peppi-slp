@@ -6,11 +6,15 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33"
-jmespatch = { version = "0.3", features = ["specialized"] }
+jmespatch = { version = "0.3" }
+#jmespatch = { version = "0.3", features = ["specialized"] }
 mimalloc = { version = "0.1", default-features = false }
-parquet = { version = "3.0", default-features = false }
+#parquet = { version = "3.0", default-features = false }
+#parquet = "3.0"
+parquet = { version = "4.0.0-SNAPSHOT", default-features = false, git = "https://github.com/apache/arrow" }
 parquet-format = "4.0"
-peppi = { git = "https://github.com/hohav/peppi.git", branch = "const-generics" }
+#peppi = { git = "https://github.com/hohav/peppi.git", branch = "const-generics" }
+peppi = { path = "../peppi" }
 pretty_env_logger = "0.4"
 serde_json = "1.0"
 

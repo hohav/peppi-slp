@@ -41,7 +41,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 	fs::write(dir.join("start.json"), serde_json::to_string(&game.start)?)?;
 	fs::write(dir.join("end.json"), serde_json::to_string(&game.end)?)?;
 	if !skip_frames {
-		let frames = transform::transform(&game.frames);
+		let frames = transform::transpose_rows(&game.frames);
 		if let Some(item) = &frames.item {
 			parquet::write_items(item, dir.join("items.parquet"))?;
 		}
@@ -81,7 +81,7 @@ fn write<W: Write>(game: &Game, out: W, format: Format, query: Option<&String>) 
 }
 
 fn inspect<R: io::Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
-	let game = peppi::game(&mut buf)?;
+	let game = peppi::game(&mut buf, Some(peppi::parse::Opts { skip_frames: opts.skip_frames }))?;
 	use Format::*;
 	match (opts.format, opts.outfile.as_str()) {
 		(Peppi, "-") => Err("cannot output Peppi to STDOUT")?,
@@ -151,8 +151,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 
 	let opts = parse_opts()?;
 	unsafe {
-		peppi::CONFIG = peppi::Config {
-			skip_frames: opts.skip_frames,
+		peppi::SERIALIZATION_CONFIG = peppi::SerializationConfig {
 			enum_names: opts.enum_names,
 		}
 	};

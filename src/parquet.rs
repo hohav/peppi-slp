@@ -1,17 +1,31 @@
-use std::{fs, path, sync::Arc};
-use std::error::Error;
+use std::{
+	error::Error,
+	fs::File,
+	path::Path,
+	sync::Arc,
+};
 
 use parquet::{
+	basic::{
+		Compression,
+		Encoding,
+	},
 	column::writer::{get_typed_column_writer_mut},
 	data_type::{BoolType, FloatType, Int32Type, Int64Type},
 	file::{
 		properties::WriterProperties,
 		writer::{FileWriter, RowGroupWriter, SerializedFileWriter},
 	},
-	schema::parser::parse_message_type,
+	schema::{
+		parser::parse_message_type,
+	},
 };
 
-use peppi::game::FIRST_FRAME_INDEX;
+use peppi::{
+	game::FIRST_FRAME_INDEX,
+	frame::{PreCol, PostCol, ItemCol},
+	primitives::Direction,
+};
 
 use super::transform;
 
@@ -103,6 +117,7 @@ required float hitlag;
 ";
 
 const SCHEMA_ITEM: &str = "
+required int32 index;
 required int32 id (UINT_32);
 required int32 type (UINT_16);
 required int32 state (UINT_8);
@@ -159,63 +174,74 @@ fn write_f32(rgw: &mut Box<dyn RowGroupWriter>, data: &[f32]) -> Result<(), Box<
 	Ok(())
 }
 
-fn write_pre(rgw: &mut Box<dyn RowGroupWriter>, pre: &transform::Pre, p: usize) -> Result<(), Box<dyn Error>> {
-	write_f32(rgw, &pre.position.x[p])?;
-	write_f32(rgw, &pre.position.y[p])?;
-	write_bool(rgw, &pre.direction[p])?;
-	write_f32(rgw, &pre.joystick.x[p])?;
-	write_f32(rgw, &pre.joystick.y[p])?;
-	write_f32(rgw, &pre.cstick.x[p])?;
-	write_f32(rgw, &pre.cstick.y[p])?;
-	write_f32(rgw, &pre.triggers.logical[p])?;
-	write_f32(rgw, &pre.triggers.physical.l[p])?;
-	write_f32(rgw, &pre.triggers.physical.r[p])?;
-	write_i32(rgw, &pre.random_seed[p])?;
-	write_i32(rgw, &pre.buttons.physical[p])?;
-	write_i32(rgw, &pre.buttons.logical[p])?;
-	write_i32(rgw, &pre.state[p])?;
+fn write_pre(rgw: &mut Box<dyn RowGroupWriter>, pre: &PreCol, p: usize) -> Result<(), Box<dyn Error>> {
+	write_f32(rgw, &pre.position[p].iter().map(|p| p.x).collect::<Vec<_>>())?;
+	write_f32(rgw, &pre.position[p].iter().map(|p| p.y).collect::<Vec<_>>())?;
+	write_bool(rgw, &pre.direction[p].iter().map(|d| *d == Direction::Right).collect::<Vec<_>>())?;
+	write_f32(rgw, &pre.joystick[p].iter().map(|p| p.x).collect::<Vec<_>>())?;
+	write_f32(rgw, &pre.joystick[p].iter().map(|p| p.y).collect::<Vec<_>>())?;
+	write_f32(rgw, &pre.cstick[p].iter().map(|p| p.x).collect::<Vec<_>>())?;
+	write_f32(rgw, &pre.cstick[p].iter().map(|p| p.y).collect::<Vec<_>>())?;
+	write_f32(rgw, &pre.triggers[p].iter().map(|t| t.logical).collect::<Vec<_>>())?;
+	write_f32(rgw, &pre.triggers[p].iter().map(|t| t.physical.l).collect::<Vec<_>>())?;
+	write_f32(rgw, &pre.triggers[p].iter().map(|t| t.physical.r).collect::<Vec<_>>())?;
+	write_i32(rgw, &pre.random_seed[p].iter().map(|r| *r as i32).collect::<Vec<_>>())?;
+	write_i32(rgw, &pre.buttons[p].iter().map(|b| b.logical.0 as i32).collect::<Vec<_>>())?;
+	write_i32(rgw, &pre.buttons[p].iter().map(|b| b.physical.0 as i32).collect::<Vec<_>>())?;
+	write_i32(rgw, &pre.state[p].iter().map(|s| u16::from(*s) as i32).collect::<Vec<_>>())?;
 
-	if let Some(v1_2) = &pre.v1_2 {
-		write_i32(rgw, &v1_2.raw_analog_x[p])?;
-		if let Some(v1_4) = &v1_2.v1_4 {
-			write_f32(rgw, &v1_4.damage[p])?;
+	// v1.2
+	if let Some(raw_analog_x) = &pre.raw_analog_x {
+		write_i32(rgw, &raw_analog_x[p].iter().map(|r| *r as i32).collect::<Vec<_>>())?;
+		// v1.4
+		if let Some(damage) = &pre.damage {
+			write_f32(rgw, &damage[p])?;
 		}
 	}
 
 	Ok(())
 }
 
-fn write_post(rgw: &mut Box<dyn RowGroupWriter>, post: &transform::Post, p: usize) -> Result<(), Box<dyn Error>> {
-	write_f32(rgw, &post.position.x[p])?;
-	write_f32(rgw, &post.position.y[p])?;
-	write_bool(rgw, &post.direction[p])?;
+fn write_post(rgw: &mut Box<dyn RowGroupWriter>, post: &PostCol, p: usize) -> Result<(), Box<dyn Error>> {
+	write_f32(rgw, &post.position[p].iter().map(|p| p.x).collect::<Vec<_>>())?;
+	write_f32(rgw, &post.position[p].iter().map(|p| p.y).collect::<Vec<_>>())?;
+	write_bool(rgw, &post.direction[p].iter().map(|d| *d == Direction::Right).collect::<Vec<_>>())?;
 	write_f32(rgw, &post.damage[p])?;
 	write_f32(rgw, &post.shield[p])?;
-	write_i32(rgw, &post.state[p])?;
-	write_i32(rgw, &post.character[p])?;
-	write_i32(rgw, &post.last_attack_landed[p])?;
-	write_i32(rgw, &post.combo_count[p])?;
-	write_i32(rgw, &post.last_hit_by[p])?;
-	write_i32(rgw, &post.stocks[p])?;
+	write_i32(rgw, &post.state[p].iter().map(|s| u16::from(*s) as i32).collect::<Vec<_>>())?;
+	write_i32(rgw, &post.character[p].iter().map(|c| c.0 as i32).collect::<Vec<_>>())?;
+	write_i32(rgw, &post.last_attack_landed[p].iter().map(|l| l.map(|l| l.0 as i32).unwrap_or(0)).collect::<Vec<_>>())?;
+	write_i32(rgw, &post.combo_count[p].iter().map(|c| *c as i32).collect::<Vec<_>>())?;
+	write_i32(rgw, &post.last_hit_by[p].iter().map(|l| l.map(|l| l as i32).unwrap_or(u8::MAX as i32)).collect::<Vec<_>>())?;
+	write_i32(rgw, &post.stocks[p].iter().map(|s| *s as i32).collect::<Vec<_>>())?;
 
-	if let Some(v0_2) = &post.v0_2 {
-		write_f32(rgw, &v0_2.state_age[p])?;
-		if let Some(v2_0) = &v0_2.v2_0 {
-			write_i64(rgw, &v2_0.flags[p])?;
-			write_f32(rgw, &v2_0.misc_as[p])?;
-			write_bool(rgw, &v2_0.airborne[p])?;
-			write_i32(rgw, &v2_0.ground[p])?;
-			write_i32(rgw, &v2_0.jumps[p])?;
-			write_i32(rgw, &v2_0.l_cancel[p])?;
-			if let Some(v2_1) = &v2_0.v2_1 {
-				write_i32(rgw, &v2_1.hurtbox_state[p])?;
-				if let Some(v3_5) = &v2_1.v3_5 {
-					write_f32(rgw, &v3_5.velocities.autogenous.x[p])?;
-					write_f32(rgw, &v3_5.velocities.autogenous.y[p])?;
-					write_f32(rgw, &v3_5.velocities.knockback.x[p])?;
-					write_f32(rgw, &v3_5.velocities.knockback.y[p])?;
-					if let Some(v3_8) = &v3_5.v3_8 {
-						write_f32(rgw, &v3_8.hitlag[p])?;
+	// v0.2
+	if let Some(state_age) = &post.state_age {
+		write_f32(rgw, &state_age[p])?;
+		// v2.0
+		if let Some(flags) = &post.flags {
+			write_i64(rgw, &flags[p].iter().map(|f| f.0 as i64).collect::<Vec<_>>())?;
+			write_f32(rgw, &post.misc_as.as_ref().unwrap()[p])?;
+			write_bool(rgw, &post.airborne.as_ref().unwrap()[p])?;
+			write_i32(rgw, &post.ground.as_ref().unwrap()[p].iter().map(|g| *g as i32).collect::<Vec<_>>())?;
+			write_i32(rgw, &post.jumps.as_ref().unwrap()[p].iter().map(|j| *j as i32).collect::<Vec<_>>())?;
+			write_i32(rgw, &post.l_cancel.as_ref().unwrap()[p].iter().map(|l| match l {
+				None => 0,
+				Some(true) => 1,
+				Some(false) => 2,
+			}).collect::<Vec<_>>())?;
+			// v2.1
+			if let Some(hurtbox_state) = &post.hurtbox_state {
+				write_i32(rgw, &hurtbox_state[p].iter().map(|h| h.0 as i32).collect::<Vec<_>>())?;
+				// v3.5
+				if let Some(velocities) = &post.velocities {
+					write_f32(rgw, &velocities[p].iter().map(|v| v.autogenous.x).collect::<Vec<_>>())?;
+					write_f32(rgw, &velocities[p].iter().map(|v| v.autogenous.y).collect::<Vec<_>>())?;
+					write_f32(rgw, &velocities[p].iter().map(|v| v.knockback.x).collect::<Vec<_>>())?;
+					write_f32(rgw, &velocities[p].iter().map(|v| v.knockback.y).collect::<Vec<_>>())?;
+					// v3.8
+					if let Some(hitlag) = &post.hitlag {
+						write_f32(rgw, &hitlag[p])?;
 					}
 				}
 			}
@@ -225,96 +251,27 @@ fn write_post(rgw: &mut Box<dyn RowGroupWriter>, post: &transform::Post, p: usiz
 	Ok(())
 }
 
-fn write_item(rgw: &mut Box<dyn RowGroupWriter>, item: &transform::Item) -> Result<(), Box<dyn Error>> {
-	let indexes: Vec<_> = (0 .. item.id.len())
-		.flat_map(|n| vec![n as i32 + FIRST_FRAME_INDEX; item.id[n].len()]).collect();
-	write_i32(rgw, &indexes)?;
+fn write_item(rgw: &mut Box<dyn RowGroupWriter>, item: &ItemCol) -> Result<(), Box<dyn Error>> {
+	write_i32(rgw, &item.index)?;
+	write_i32(rgw, &item.id.iter().map(|i| *i as i32).collect::<Vec<_>>())?;
+	write_i32(rgw, &item.r#type.iter().map(|t| t.0 as i32).collect::<Vec<_>>())?;
+	write_i32(rgw, &item.state.iter().map(|s| *s as i32).collect::<Vec<_>>())?;
+	write_bool(rgw, &item.direction.iter().map(|d| *d == Direction::Right).collect::<Vec<_>>())?;
+	write_f32(rgw, &item.position.iter().map(|p| p.x).collect::<Vec<_>>())?;
+	write_f32(rgw, &item.position.iter().map(|p| p.y).collect::<Vec<_>>())?;
+	write_f32(rgw, &item.velocity.iter().map(|v| v.x).collect::<Vec<_>>())?;
+	write_f32(rgw, &item.velocity.iter().map(|v| v.y).collect::<Vec<_>>())?;
+	write_i32(rgw, &item.damage.iter().map(|d| *d as i32).collect::<Vec<_>>())?;
+	write_f32(rgw, &item.timer)?;
 
-	let mut c = rgw.next_column()?.ok_or("no column: item.id")?;
-	let w = get_typed_column_writer_mut::<Int32Type>(&mut c);
-	for a in &item.id {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.type")?;
-	let w = get_typed_column_writer_mut::<Int32Type>(&mut c);
-	for a in &item.r#type {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.state")?;
-	let w = get_typed_column_writer_mut::<Int32Type>(&mut c);
-	for a in &item.state {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.direction")?;
-	let w = get_typed_column_writer_mut::<BoolType>(&mut c);
-	for a in &item.direction {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.position.x")?;
-	let w = get_typed_column_writer_mut::<FloatType>(&mut c);
-	for a in &item.position.x {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.position.y")?;
-	let w = get_typed_column_writer_mut::<FloatType>(&mut c);
-	for a in &item.position.y {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.velocity.x")?;
-	let w = get_typed_column_writer_mut::<FloatType>(&mut c);
-	for a in &item.velocity.x {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.velocity.y")?;
-	let w = get_typed_column_writer_mut::<FloatType>(&mut c);
-	for a in &item.velocity.y {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.damage")?;
-	let w = get_typed_column_writer_mut::<Int32Type>(&mut c);
-	for a in &item.damage {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	let mut c = rgw.next_column()?.ok_or("no column: item.timer")?;
-	let w = get_typed_column_writer_mut::<FloatType>(&mut c);
-	for a in &item.timer {
-		w.write_batch(&a, None, None)?;
-	}
-	rgw.close_column(c)?;
-
-	if let Some(v3_2) = &item.v3_2 {
-		let mut c = rgw.next_column()?.ok_or("no column: item.v3_2.misc")?;
-		let w = get_typed_column_writer_mut::<Int32Type>(&mut c);
-		for a in &v3_2.misc {
-			w.write_batch(&a, None, None)?;
-		}
-		rgw.close_column(c)?;
-
-		if let Some(v3_6) = &v3_2.v3_6 {
-			let mut c = rgw.next_column()?.ok_or("no column: item.v3_2.v3_6.owner")?;
-			let w = get_typed_column_writer_mut::<Int32Type>(&mut c);
-			for a in &v3_6.owner {
-				w.write_batch(&a, None, None)?;
-			}
-			rgw.close_column(c)?;
+	// v3.2
+	if let Some(misc) = &item.misc {
+		write_i32(rgw, &misc.iter().map(|m| u32::from_le_bytes(*m) as i32).collect::<Vec<_>>())?;
+		// v3.6
+		if let Some(owner) = &item.owner {
+			write_i32(rgw, &owner.iter()
+				.map(|o| o.map(|o| o as i32).unwrap_or(u8::MAX as i32))
+				.collect::<Vec<_>>())?;
 		}
 	}
 
@@ -323,9 +280,10 @@ fn write_item(rgw: &mut Box<dyn RowGroupWriter>, item: &transform::Item) -> Resu
 
 fn schema_frame_pre(frames: &transform::Frames) -> String {
 	let mut schema = String::from(SCHEMA_FRAME_PRE);
-	if let Some(v1_2) = &frames.leader.pre.v1_2 {
+	let pre = &frames.leader.pre;
+	if pre.raw_analog_x.is_some() {
 		schema += SCHEMA_FRAME_PRE_V1_2;
-		if let Some(_v1_4) = &v1_2.v1_4 {
+		if pre.damage.is_some() {
 			schema += SCHEMA_FRAME_PRE_V1_4;
 		}
 	}
@@ -334,15 +292,16 @@ fn schema_frame_pre(frames: &transform::Frames) -> String {
 
 fn schema_frame_post(frames: &transform::Frames) -> String {
 	let mut schema = String::from(SCHEMA_FRAME_POST);
-	if let Some(v0_2) = &frames.leader.post.v0_2 {
+	let post = &frames.leader.post;
+	if post.state_age.is_some() {
 		schema += SCHEMA_FRAME_POST_V0_2;
-		if let Some(v2_0) = &v0_2.v2_0 {
+		if post.flags.is_some() {
 			schema += SCHEMA_FRAME_POST_V2_0;
-			if let Some(v2_1) = &v2_0.v2_1 {
+			if post.hurtbox_state.is_some() {
 				schema += SCHEMA_FRAME_POST_V2_1;
-				if let Some(v3_5) = &v2_1.v3_5 {
+				if post.velocities.is_some() {
 					schema += SCHEMA_FRAME_POST_V3_5;
-					if let Some(_v3_8) = &v3_5.v3_8 {
+					if post.hitlag.is_some() {
 						schema += SCHEMA_FRAME_POST_V3_8;
 					}
 				}
@@ -364,42 +323,42 @@ message frame_data {{
 		schema_frame_pre(frames), schema_frame_post(frames))
 }
 
-fn schema_item(item: &transform::Item) -> String {
+fn schema_item(item: &ItemCol) -> String {
 	let mut schema = String::from(SCHEMA_ITEM);
-	if let Some(v3_2) = &item.v3_2 {
+	if item.misc.is_some() {
 		schema += SCHEMA_ITEM_V3_2;
-		if let Some(_v3_6) = &v3_2.v3_6 {
+		if item.owner.is_some() {
 			schema += SCHEMA_ITEM_V3_6;
 		}
 	}
 	schema
 }
 
-fn schema_items(item: &transform::Item) -> String {
+fn schema_items(item: &ItemCol) -> String {
 	format!("
 message item_data {{
-	required int32 index;
 	{}
 }}
 ",
 		schema_item(item))
 }
 
-pub fn write_frames<P: AsRef<path::Path>>(frames: &transform::Frames, path: P) -> Result<(), Box<dyn Error>> {
+pub fn write_frames<P: AsRef<Path>>(frames: &transform::Frames, path: P) -> Result<(), Box<dyn Error>> {
 	let schema = Arc::new(parse_message_type(&schema_frames(frames))?);
 	let props = Arc::new(WriterProperties::builder()
 		.set_writer_version(parquet::file::properties::WriterVersion::PARQUET_2_0)
 		.set_dictionary_enabled(false)
-		.set_encoding(parquet::basic::Encoding::PLAIN)
-		.set_compression(parquet::basic::Compression::UNCOMPRESSED)
+		.set_encoding(Encoding::PLAIN)
+		.set_compression(Compression::UNCOMPRESSED)
 		.build());
-	let file = fs::File::create(path)?;
+	let file = File::create(path)?;
 	let mut writer = SerializedFileWriter::new(file, schema, props)?;
 
 	let num_ports = frames.leader.pre.state.len();
 	let num_frames = frames.leader.pre.state[0].len();
 
-	let frame_indexes: Vec<_> = (0 .. num_frames).map(|idx| idx as i32 + FIRST_FRAME_INDEX).collect();
+	let frame_indexes: Vec<_> = (0 .. num_frames)
+		.map(|idx| idx as i32 + FIRST_FRAME_INDEX).collect();
 
 	for port in 0 .. num_ports {
 		let mut rgw = writer.next_row_group()?;
@@ -414,7 +373,7 @@ pub fn write_frames<P: AsRef<path::Path>>(frames: &transform::Frames, path: P) -
 	for port in 0 .. num_ports {
 		use peppi::character::Internal;
 		match frames.leader.post.character[port][0] {
-			x if x == Internal::POPO.0 as i32 || x == Internal::NANA.0 as i32 => {
+			Internal::POPO | Internal::NANA => {
 				let mut rgw = writer.next_row_group()?;
 				write_i32(&mut rgw, &frame_indexes)?;
 				write_i32(&mut rgw, &vec![port as i32; num_frames])?;
@@ -431,15 +390,15 @@ pub fn write_frames<P: AsRef<path::Path>>(frames: &transform::Frames, path: P) -
 	Ok(())
 }
 
-pub fn write_items<P: AsRef<path::Path>>(item: &transform::Item, path: P) -> Result<(), Box<dyn Error>> {
+pub fn write_items<P: AsRef<Path>>(item: &ItemCol, path: P) -> Result<(), Box<dyn Error>> {
 	let schema = Arc::new(parse_message_type(&schema_items(item))?);
 	let props = Arc::new(WriterProperties::builder()
 		.set_writer_version(parquet::file::properties::WriterVersion::PARQUET_2_0)
 		.set_dictionary_enabled(false)
-		.set_encoding(parquet::basic::Encoding::PLAIN)
-		.set_compression(parquet::basic::Compression::UNCOMPRESSED)
+		.set_encoding(Encoding::PLAIN)
+		.set_compression(Compression::UNCOMPRESSED)
 		.build());
-	let file = fs::File::create(path)?;
+	let file = File::create(path)?;
 	let mut writer = SerializedFileWriter::new(file, schema, props)?;
 
 	let mut rgw = writer.next_row_group()?;
