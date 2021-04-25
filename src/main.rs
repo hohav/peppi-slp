@@ -3,15 +3,11 @@ use std::error::Error;
 use std::io::Write;
 
 use clap::{App, Arg};
-use jmespatch::ToJmespath;
 
 use peppi::game::{Game, SlippiVersion};
 
 mod parquet;
 mod transform;
-
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 const MAX_SUPPORTED_VERSION: SlippiVersion = SlippiVersion(3, 8, 0);
 
@@ -26,7 +22,6 @@ struct Opts {
 	format: Format,
 	skip_frames: bool,
 	enum_names: bool,
-	query: Option<String>,
 }
 
 fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> Result<(), Box<dyn Error>> {
@@ -60,21 +55,11 @@ fn write_rust<W: Write>(game: &Game, mut out: W) -> io::Result<()> {
 	writeln!(out, "{:#?}", game)
 }
 
-fn write_query<W: Write>(game: &Game, query: &str, mut out: W) -> Result<(), Box<dyn Error>> {
-	let query = jmespatch::compile(query)?;
-	let jmes = game.to_jmespath()?;
-	let result = query.search(jmes)?;
-	writeln!(out, "{}", serde_json::to_string(&result)?)?;
-	Ok(())
-}
-
-fn write<W: Write>(game: &Game, out: W, format: Format, query: Option<&String>) -> Result<(), Box<dyn Error>> {
+fn write<W: Write>(game: &Game, out: W, format: Format) -> Result<(), Box<dyn Error>> {
 	use Format::*;
-	match (format, query) {
-		(Json, Some(q)) => write_query(game, q, out)?,
-		(_, Some(_)) => Err("queries only support JSON output")?,
-		(Json, _) => write_json(game, out)?,
-		(Rust, _) => write_rust(game, out)?,
+	match format {
+		Json => write_json(game, out)?,
+		Rust => write_rust(game, out)?,
 		_ => unimplemented!(),
 	}
 	Ok(())
@@ -86,8 +71,8 @@ fn inspect<R: io::Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
 	match (opts.format, opts.outfile.as_str()) {
 		(Peppi, "-") => Err("cannot output Peppi to STDOUT")?,
 		(Peppi, o) => write_peppi(&game, o, opts.skip_frames),
-		(format, "-") => write(&game, io::stdout(), format, opts.query.as_ref()),
-		(format, s) => write(&game, fs::File::create(s)?, format, opts.query.as_ref()),
+		(format, "-") => write(&game, io::stdout(), format),
+		(format, s) => write(&game, fs::File::create(s)?, format),
 	}
 }
 
@@ -105,11 +90,6 @@ fn parse_opts() -> Result<Opts, String> {
 			 .short("f")
 			 .possible_values(&["json", "peppi", "rust"])
 			 .default_value("json"))
-		.arg(Arg::with_name("query")
-			.help("Print a subset of data as JSON (JMESPath syntax)")
-			.short("q")
-			.long("query")
-			.takes_value(true))
 		.arg(Arg::with_name("names")
 			.help("Append names for known constants")
 			.short("n")
@@ -142,7 +122,6 @@ fn parse_opts() -> Result<Opts, String> {
 		format: format,
 		skip_frames: matches.is_present("skip-frames"),
 		enum_names: matches.is_present("names"),
-		query: matches.value_of("query").map(|q| q.to_string()),
 	})
 }
 
