@@ -1,15 +1,17 @@
-use std::{fs, io, path};
-use std::error::Error;
-use std::io::Write;
+use std::{error::Error, fs, io, path};
 
+use ::arrow::record_batch::RecordBatch;
 use clap::{App, Arg};
+use parquet::{
+	arrow::arrow_writer::ArrowWriter,
+	basic::{Compression, Encoding},
+	file::properties::{WriterProperties, WriterVersion},
+};
 
-use peppi::game::{Game, SlippiVersion};
-
-mod parquet;
-mod transform;
-
-const MAX_SUPPORTED_VERSION: SlippiVersion = SlippiVersion(3, 8, 0);
+use peppi::{
+	arrow,
+	game::{MAX_SUPPORTED_VERSION, Game},
+};
 
 #[derive(Copy, Clone)]
 enum Format {
@@ -35,27 +37,45 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 	fs::write(dir.join("metadata.json"), serde_json::to_string(&game.metadata_raw)?)?;
 	fs::write(dir.join("start.json"), serde_json::to_string(&game.start)?)?;
 	fs::write(dir.join("end.json"), serde_json::to_string(&game.end)?)?;
+
 	if !skip_frames {
-		let frames = transform::transpose_rows(&game.frames);
-		if let Some(item) = &frames.item {
-			parquet::write_items(item, dir.join("items.parquet"))?;
+		let props = WriterProperties::builder()
+			.set_writer_version(WriterVersion::PARQUET_2_0)
+			.set_dictionary_enabled(false)
+			.set_encoding(Encoding::PLAIN)
+			.set_compression(Compression::UNCOMPRESSED)
+			.build();
+
+		if let Some(items) = arrow::items(&game)? {
+			let items = RecordBatch::from(&items);
+			let buf = fs::File::create(dir.join("items.parquet"))?;
+			let mut writer = ArrowWriter::try_new(
+				buf, items.schema(), Some(props.clone()))?;
+			writer.write(&items)?;
+			writer.close()?;
 		}
-		parquet::write_frames(&frames, dir.join("frames.parquet"))?;
+
+		let frames = RecordBatch::from(&arrow::frames(&game)?);
+		let buf = fs::File::create(dir.join("frames.parquet"))?;
+		let mut writer = ArrowWriter::try_new(
+			buf, frames.schema(), Some(props))?;
+		writer.write(&frames)?;
+		writer.close()?;
 	}
 
 	Ok(())
 }
 
-fn write_json<W: Write>(game: &Game, mut out: W) -> Result<(), Box<dyn Error>> {
+fn write_json<W: io::Write>(game: &Game, mut out: W) -> Result<(), Box<dyn Error>> {
 	writeln!(out, "{}", serde_json::to_string(game)?)?;
 	Ok(())
 }
 
-fn write_rust<W: Write>(game: &Game, mut out: W) -> io::Result<()> {
+fn write_rust<W: io::Write>(game: &Game, mut out: W) -> io::Result<()> {
 	writeln!(out, "{:#?}", game)
 }
 
-fn write<W: Write>(game: &Game, out: W, format: Format) -> Result<(), Box<dyn Error>> {
+fn write<W: io::Write>(game: &Game, out: W, format: Format) -> Result<(), Box<dyn Error>> {
 	use Format::*;
 	match format {
 		Json => write_json(game, out)?,
