@@ -4,7 +4,7 @@
 
 ## Installation
 
-Build it with `cargo build --release` (requires nightly Rust).
+Build it with `cargo build --release`.
 
 ## Usage
 
