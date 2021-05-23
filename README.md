@@ -15,11 +15,12 @@ Run `slp --help` for a complete list of options.
 Print the post-frame action state for each port (player) on the last frame of the game:
 
 ```bash
-$ slp -nq frames[-1].ports[].leader.post.state game.slp
-["14:WAIT","1:DEAD_LEFT"]
+$ slp -n game.slp | jq .frames[-1].ports[].leader.post.state
+"14:WAIT"
+"1:DEAD_LEFT"
 ```
 
-Convert a replay to JSON:
+Convert a replay to JSON, skipping frame data:
 
 ```bash
 $ slp -s game.slp | jq # `-s` to skip frame data; `jq` for pretty-printing
