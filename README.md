@@ -4,7 +4,7 @@
 
 ## Installation
 
-Build it with `cargo build --release`.
+Download the [latest release](https://github.com/hohav/peppi-slp/releases/latest), or get the source and build it with `cargo build --release`.
 
 ## Usage
 
