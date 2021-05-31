@@ -1,6 +1,9 @@
 use std::{error::Error, fs, io, path};
 
-use ::arrow::record_batch::RecordBatch;
+use ::arrow::{
+	array::StructArray,
+	record_batch::RecordBatch,
+};
 use clap::{App, Arg};
 use parquet::{
 	arrow::arrow_writer::ArrowWriter,
@@ -46,20 +49,26 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 			.set_compression(Compression::UNCOMPRESSED)
 			.build();
 
-		if let Some(items) = arrow::items(&game)? {
-			let items = RecordBatch::from(&items);
+		if let Some(items) = arrow::items(&game, None) {
+			let batch = RecordBatch::from(
+				items.as_any().downcast_ref::<StructArray>().unwrap());
 			let buf = fs::File::create(dir.join("items.parquet"))?;
 			let mut writer = ArrowWriter::try_new(
-				buf, items.schema(), Some(props.clone()))?;
-			writer.write(&items)?;
+				buf, batch.schema(), Some(props.clone()))?;
+			writer.write(&batch)?;
 			writer.close()?;
 		}
 
-		let frames = RecordBatch::from(&arrow::frames(&game)?);
+		let frames = arrow::frames(&game, Some(arrow::Opts {
+			avro_compatible: true,
+			skip_items: true,
+		}));
+		let batch = RecordBatch::from(
+			frames.as_any().downcast_ref::<StructArray>().unwrap());
 		let buf = fs::File::create(dir.join("frames.parquet"))?;
 		let mut writer = ArrowWriter::try_new(
-			buf, frames.schema(), Some(props))?;
-		writer.write(&frames)?;
+			buf, batch.schema(), Some(props))?;
+		writer.write(&batch)?;
 		writer.close()?;
 	}
 
