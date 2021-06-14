@@ -1,7 +1,8 @@
 use std::{error::Error, fs, io, path};
 
 use ::arrow::{
-	array::StructArray,
+	array::{Array, StructArray},
+	datatypes::{DataType, Schema},
 	record_batch::RecordBatch,
 };
 use clap::{App, Arg};
@@ -16,7 +17,7 @@ use peppi::{
 	game::{MAX_SUPPORTED_VERSION, Game},
 };
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 enum Format {
 	Json, Peppi, Rust
 }
@@ -27,6 +28,26 @@ struct Opts {
 	format: Format,
 	skip_frames: bool,
 	enum_names: bool,
+}
+
+fn into_batch(frames: StructArray) -> Result<RecordBatch, Box<dyn Error>> {
+	match frames.data().data_type() {
+		DataType::Struct(fields) => {
+			let mut filtered_fields = vec![];
+			let mut filtered_columns = vec![];
+			for (idx, f) in fields.iter().enumerate() {
+				if f.name() != "items" {
+					filtered_fields.push(f.clone());
+					filtered_columns.push(frames.column(idx).clone());
+				}
+			}
+			Ok(RecordBatch::try_new(
+				std::sync::Arc::new(Schema::new(filtered_fields)),
+				filtered_columns,
+			)?)
+		},
+		_ => unreachable!(),
+	}
 }
 
 fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> Result<(), Box<dyn Error>> {
@@ -48,10 +69,11 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 			.set_encoding(Encoding::PLAIN)
 			.set_compression(Compression::UNCOMPRESSED)
 			.build();
+		let opts = Some(arrow::Opts { avro_compatible: true });
 
-		if let Some(items) = arrow::items(&game, None) {
-			let batch = RecordBatch::from(
-				items.as_any().downcast_ref::<StructArray>().unwrap());
+		// Write items separately for now, due to bugs in Parquet
+		if let Some(items) = arrow::items(&game, opts) {
+			let batch = RecordBatch::from(&items);
 			let buf = fs::File::create(dir.join("items.parquet"))?;
 			let mut writer = ArrowWriter::try_new(
 				buf, batch.schema(), Some(props.clone()))?;
@@ -59,12 +81,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 			writer.close()?;
 		}
 
-		let frames = arrow::frames(&game, Some(arrow::Opts {
-			avro_compatible: true,
-			skip_items: true,
-		}));
-		let batch = RecordBatch::from(
-			frames.as_any().downcast_ref::<StructArray>().unwrap());
+		let batch = into_batch(arrow::frames(&game, opts))?;
 		let buf = fs::File::create(dir.join("frames.parquet"))?;
 		let mut writer = ArrowWriter::try_new(
 			buf, batch.schema(), Some(props))?;
