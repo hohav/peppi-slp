@@ -80,7 +80,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 			.build();
 
 		// write items separately (workaround for buggy/missing ListArray support in Parquet)
-		if let Some(items) = arrow::items(&game, opts) {
+		if let Some(items) = arrow::items_to_arrow(&game, opts) {
 			let batch = RecordBatch::from(&items);
 			let buf = File::create(dir.join("items.parquet"))?;
 			let mut writer = ArrowWriter::try_new(
@@ -90,7 +90,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 		}
 
 		// write the frame data
-		let batch = remove_items(arrow::frames(&game, opts))?;
+		let batch = remove_items(arrow::frames_to_arrow(&game, opts))?;
 		let buf = File::create(dir.join("frames.parquet"))?;
 		let mut writer = ArrowWriter::try_new(
 			buf, batch.schema(), Some(props))?;
