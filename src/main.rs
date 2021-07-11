@@ -36,7 +36,9 @@ struct Opts {
 	enum_names: bool,
 }
 
-fn into_batch(frames: StructArray) -> Result<RecordBatch, Box<dyn Error>> {
+/// Work around bugs in ArrowWriter's support for Lists by removing items
+/// (to be written separately).
+fn remove_items(frames: StructArray) -> Result<RecordBatch, Box<dyn Error>> {
 	match frames.data().data_type() {
 		DataType::Struct(fields) => {
 			let mut filtered_fields = vec![];
@@ -69,15 +71,15 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 	fs::write(dir.join("end.json"), serde_json::to_string(&game.end)?)?;
 
 	if !skip_frames {
+		let opts = Some(arrow::Opts { avro_compatible: true });
 		let props = WriterProperties::builder()
 			.set_writer_version(WriterVersion::PARQUET_2_0)
 			.set_dictionary_enabled(false)
 			.set_encoding(Encoding::PLAIN)
 			.set_compression(Compression::UNCOMPRESSED)
 			.build();
-		let opts = Some(arrow::Opts { avro_compatible: true });
 
-		// Write items separately for now, due to bugs in Parquet
+		// write items separately (workaround for buggy/missing ListArray support in Parquet)
 		if let Some(items) = arrow::items(&game, opts) {
 			let batch = RecordBatch::from(&items);
 			let buf = File::create(dir.join("items.parquet"))?;
@@ -87,7 +89,8 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 			writer.close()?;
 		}
 
-		let batch = into_batch(arrow::frames(&game, opts))?;
+		// write the frame data
+		let batch = remove_items(arrow::frames(&game, opts))?;
 		let buf = File::create(dir.join("frames.parquet"))?;
 		let mut writer = ArrowWriter::try_new(
 			buf, batch.schema(), Some(props))?;
