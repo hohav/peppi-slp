@@ -1,4 +1,10 @@
-use std::{error::Error, fs, io, path};
+use std::{
+	error::Error,
+	fs::{self, File},
+	io,
+	path,
+	sync::Arc,
+};
 
 use ::arrow::{
 	array::{Array, StructArray},
@@ -7,7 +13,7 @@ use ::arrow::{
 };
 use clap::{App, Arg};
 use parquet::{
-	arrow::arrow_writer::ArrowWriter,
+	arrow::ArrowWriter,
 	basic::{Compression, Encoding},
 	file::properties::{WriterProperties, WriterVersion},
 };
@@ -42,7 +48,7 @@ fn into_batch(frames: StructArray) -> Result<RecordBatch, Box<dyn Error>> {
 				}
 			}
 			Ok(RecordBatch::try_new(
-				std::sync::Arc::new(Schema::new(filtered_fields)),
+				Arc::new(Schema::new(filtered_fields)),
 				filtered_columns,
 			)?)
 		},
@@ -74,7 +80,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 		// Write items separately for now, due to bugs in Parquet
 		if let Some(items) = arrow::items(&game, opts) {
 			let batch = RecordBatch::from(&items);
-			let buf = fs::File::create(dir.join("items.parquet"))?;
+			let buf = File::create(dir.join("items.parquet"))?;
 			let mut writer = ArrowWriter::try_new(
 				buf, batch.schema(), Some(props.clone()))?;
 			writer.write(&batch)?;
@@ -82,7 +88,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 		}
 
 		let batch = into_batch(arrow::frames(&game, opts))?;
-		let buf = fs::File::create(dir.join("frames.parquet"))?;
+		let buf = File::create(dir.join("frames.parquet"))?;
 		let mut writer = ArrowWriter::try_new(
 			buf, batch.schema(), Some(props))?;
 		writer.write(&batch)?;
@@ -118,7 +124,7 @@ fn inspect<R: io::Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
 		(Peppi, "-") => Err("cannot output Peppi to STDOUT")?,
 		(Peppi, o) => write_peppi(&game, o, opts.skip_frames),
 		(format, "-") => write(&game, io::stdout(), format),
-		(format, s) => write(&game, fs::File::create(s)?, format),
+		(format, s) => write(&game, File::create(s)?, format),
 	}
 }
 
@@ -183,6 +189,6 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 
 	match opts.infile.as_str() {
 		"-" => inspect(io::stdin(), &opts),
-		path => inspect(io::BufReader::new(fs::File::open(path)?), &opts),
+		path => inspect(io::BufReader::new(File::open(path)?), &opts),
 	}
 }
