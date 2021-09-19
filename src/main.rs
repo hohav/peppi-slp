@@ -1,7 +1,7 @@
 use std::{
 	error::Error,
 	fs::{self, File},
-	io,
+	io::{self, Read, Write},
 	path,
 	sync::Arc,
 };
@@ -19,13 +19,13 @@ use parquet::{
 };
 
 use peppi::{
-	arrow,
-	game::{MAX_SUPPORTED_VERSION, Game},
+	serde::arrow,
+	model::game::{MAX_SUPPORTED_VERSION, Game},
 };
 
 #[derive(Clone, Copy)]
 enum Format {
-	Json, Peppi, Rust
+	Json, Peppi, Rust, Slippi
 }
 
 struct Opts {
@@ -33,6 +33,7 @@ struct Opts {
 	outfile: String,
 	format: Format,
 	skip_frames: bool,
+	rollbacks: bool,
 	enum_names: bool,
 }
 
@@ -101,16 +102,21 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 	Ok(())
 }
 
-fn write_json<W: io::Write>(game: &Game, mut out: W) -> Result<(), Box<dyn Error>> {
+fn write_json<W: Write>(game: &Game, mut out: W) -> Result<(), Box<dyn Error>> {
 	writeln!(out, "{}", serde_json::to_string(game)?)?;
 	Ok(())
 }
 
-fn write_rust<W: io::Write>(game: &Game, mut out: W) -> io::Result<()> {
+fn write_rust<W: Write>(game: &Game, mut out: W) -> io::Result<()> {
 	writeln!(out, "{:#?}", game)
 }
 
-fn write<W: io::Write>(game: &Game, out: W, format: Format) -> Result<(), Box<dyn Error>> {
+fn write_slippi<P: AsRef<path::Path>>(game: &Game, path: P) -> Result<(), Box<dyn Error>> {
+	peppi::serde::ser::serialize(&mut File::create(path)?, game)?;
+	Ok(())
+}
+
+fn write<W: Write>(game: &Game, out: W, format: Format) -> Result<(), Box<dyn Error>> {
 	use Format::*;
 	match format {
 		Json => write_json(game, out)?,
@@ -120,12 +126,17 @@ fn write<W: io::Write>(game: &Game, out: W, format: Format) -> Result<(), Box<dy
 	Ok(())
 }
 
-fn inspect<R: io::Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
-	let game = peppi::game(&mut buf, Some(peppi::parse::Opts { skip_frames: opts.skip_frames }))?;
+fn inspect<R: Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
+	let game = peppi::game(&mut buf,
+		Some(peppi::serde::de::Opts { skip_frames: opts.skip_frames }),
+		Some(peppi::serde::collect::Opts { rollbacks: opts.rollbacks }),
+	)?;
 	use Format::*;
 	match (opts.format, opts.outfile.as_str()) {
 		(Peppi, "-") => Err("cannot output Peppi to STDOUT")?,
 		(Peppi, o) => write_peppi(&game, o, opts.skip_frames),
+		(Slippi, "-") => Err("cannot output Slippi to STDOUT")?,
+		(Slippi, o) => write_slippi(&game, o),
 		(format, "-") => write(&game, io::stdout(), format),
 		(format, s) => write(&game, File::create(s)?, format),
 	}
@@ -143,7 +154,7 @@ fn parse_opts() -> Result<Opts, String> {
 		.arg(Arg::with_name("format")
 			 .help("Output format")
 			 .short("f")
-			 .possible_values(&["json", "peppi", "rust"])
+			 .possible_values(&["json", "peppi", "rust", "slippi"])
 			 .default_value("json"))
 		.arg(Arg::with_name("names")
 			.help("Append names for known constants")
@@ -153,6 +164,10 @@ fn parse_opts() -> Result<Opts, String> {
 			.help("Don't output frame data")
 			.short("s")
 			.long("skip-frames"))
+		.arg(Arg::with_name("rollbacks")
+			.help("Include rollback frames")
+			.short("r")
+			.long("rollbacks"))
 		.arg(Arg::with_name("game.slp")
 			.help("Replay file to parse (`-` for STDIN)")
 			.index(1))
@@ -167,6 +182,7 @@ fn parse_opts() -> Result<Opts, String> {
 			"json" => Json,
 			"peppi" => Peppi,
 			"rust" => Rust,
+			"slippi" => Slippi,
 			_ => unimplemented!(),
 		}
 	};
@@ -176,6 +192,7 @@ fn parse_opts() -> Result<Opts, String> {
 		outfile: outfile.to_string(),
 		format: format,
 		skip_frames: matches.is_present("skip-frames"),
+		rollbacks: matches.is_present("rollbacks"),
 		enum_names: matches.is_present("names"),
 	})
 }
