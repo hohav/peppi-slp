@@ -32,7 +32,7 @@ struct Opts {
 	infile: String,
 	outfile: String,
 	format: Format,
-	skip_frames: bool,
+	short: bool,
 	rollbacks: bool,
 	enum_names: bool,
 }
@@ -59,7 +59,7 @@ fn remove_items(frames: StructArray) -> Result<RecordBatch, Box<dyn Error>> {
 	}
 }
 
-fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> Result<(), Box<dyn Error>> {
+fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, short: bool) -> Result<(), Box<dyn Error>> {
 	if game.start.slippi.version > MAX_SUPPORTED_VERSION {
 		eprintln!("WARNING: unsupported Slippi version ({} > {}). Unknown fields will be omitted from output!",
 			game.start.slippi.version, MAX_SUPPORTED_VERSION);
@@ -71,7 +71,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, skip_frames: bool) -> 
 	fs::write(dir.join("start.json"), serde_json::to_string(&game.start)?)?;
 	fs::write(dir.join("end.json"), serde_json::to_string(&game.end)?)?;
 
-	if !skip_frames {
+	if !short {
 		let opts = Some(arrow::Opts { avro_compatible: true });
 		let props = WriterProperties::builder()
 			.set_writer_version(WriterVersion::PARQUET_2_0)
@@ -128,13 +128,13 @@ fn write<W: Write>(game: &Game, out: W, format: Format) -> Result<(), Box<dyn Er
 
 fn inspect<R: Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
 	let game = peppi::game(&mut buf,
-		Some(peppi::serde::de::Opts { skip_frames: opts.skip_frames }),
+		Some(peppi::serde::de::Opts { skip_frames: opts.short }),
 		Some(peppi::serde::collect::Opts { rollbacks: opts.rollbacks }),
 	)?;
 	use Format::*;
 	match (opts.format, opts.outfile.as_str()) {
 		(Peppi, "-") => Err("cannot output Peppi to STDOUT")?,
-		(Peppi, o) => write_peppi(&game, o, opts.skip_frames),
+		(Peppi, o) => write_peppi(&game, o, opts.short),
 		(Slippi, "-") => Err("cannot output Slippi to STDOUT")?,
 		(Slippi, o) => write_slippi(&game, o),
 		(format, "-") => write(&game, io::stdout(), format),
@@ -160,10 +160,10 @@ fn parse_opts() -> Result<Opts, String> {
 			.help("Append names for known constants")
 			.short("n")
 			.long("names"))
-		.arg(Arg::with_name("skip-frames")
+		.arg(Arg::with_name("short")
 			.help("Don't output frame data")
 			.short("s")
-			.long("skip-frames"))
+			.long("short"))
 		.arg(Arg::with_name("rollbacks")
 			.help("Include rollback frames")
 			.short("r")
@@ -191,7 +191,7 @@ fn parse_opts() -> Result<Opts, String> {
 		infile: infile.to_string(),
 		outfile: outfile.to_string(),
 		format: format,
-		skip_frames: matches.is_present("skip-frames"),
+		short: matches.is_present("short"),
 		rollbacks: matches.is_present("rollbacks"),
 		enum_names: matches.is_present("names"),
 	})
