@@ -142,7 +142,7 @@ fn inspect<R: Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
 	}
 }
 
-fn parse_opts() -> Result<Opts, String> {
+fn parse_opts() -> Opts {
 	let matches = App::new("slp")
 		.version("0.1")
 		.author("melkor <hohav@fastmail.com>")
@@ -173,7 +173,7 @@ fn parse_opts() -> Result<Opts, String> {
 			.index(1))
 		.get_matches();
 
-	let infile = matches.value_of("game.slp").unwrap_or("-");
+	let infile = matches.value_of("game.slp").unwrap_or("");
 	let outfile = matches.value_of("outfile").unwrap();
 
 	let format = {
@@ -187,28 +187,43 @@ fn parse_opts() -> Result<Opts, String> {
 		}
 	};
 
-	Ok(Opts {
+	Opts {
 		infile: infile.to_string(),
 		outfile: outfile.to_string(),
 		format: format,
 		short: matches.is_present("short"),
 		rollbacks: matches.is_present("rollbacks"),
 		enum_names: matches.is_present("names"),
-	})
+	}
 }
 
-pub fn main() -> Result<(), Box<dyn Error>> {
+pub fn _main() -> Result<(), Box<dyn Error>> {
 	pretty_env_logger::init();
 
-	let opts = parse_opts()?;
+	let opts = parse_opts();
 	unsafe {
 		peppi::SERIALIZATION_CONFIG = peppi::SerializationConfig {
 			enum_names: opts.enum_names,
 		}
 	};
 
+	if opts.infile == "" && atty::is(atty::Stream::Stdin) {
+		return Err("refusing to read from a TTY (`slp -h` for usage)".into());
+	}
+
 	match opts.infile.as_str() {
-		"-" => inspect(io::stdin(), &opts),
-		path => inspect(io::BufReader::new(File::open(path)?), &opts),
+		"-" | "" => inspect(io::stdin(), &opts),
+		path => {
+			let file = File::open(path)
+				.map_err(|e| format!("couldn't open `{}`: {}", path, e))?;
+			inspect(io::BufReader::new(file), &opts)
+		},
+	}
+}
+
+pub fn main() {
+	if let Err(e) = _main() {
+		log::error!("{}", e);
+		std::process::exit(2);
 	}
 }
