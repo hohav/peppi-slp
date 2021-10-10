@@ -66,7 +66,7 @@ $ slp -s game.slp | jq
 }
 ```
 
-Convert a replay to Peppi format:
+Convert a replay to Peppi format (**⚠️ experimental!**):
 
 ```bash
 $ slp -f peppi -o foo game.slp

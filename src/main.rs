@@ -154,7 +154,7 @@ fn parse_opts() -> Result<Opts, String> {
 		.arg(Arg::with_name("format")
 			 .help("Output format")
 			 .short("f")
-			 .possible_values(&["json", "peppi", "rust", "slippi"])
+			 .possible_values(&["json", "slippi", "rust", "peppi (experimental)"])
 			 .default_value("json"))
 		.arg(Arg::with_name("names")
 			.help("Append names for known constants")
