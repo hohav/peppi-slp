@@ -15,7 +15,11 @@ Run `slp --help` for a complete list of options.
 Print the post-frame action state for each port (player) on the last frame of the game:
 
 ```bash
+# `-n` to print states with human-readable names
 $ slp -n game.slp | jq .frames[-1].ports[].leader.post.state
+```
+
+```json
 "14:WAIT"
 "1:DEAD_LEFT"
 ```
@@ -23,29 +27,42 @@ $ slp -n game.slp | jq .frames[-1].ports[].leader.post.state
 Convert a replay to JSON, skipping frame data:
 
 ```bash
-$ slp -s game.slp | jq # `-s` to skip frame data; `jq` for pretty-printing
+# `-s` to skip frame data
+$ slp -s game.slp | jq
+```
+
+```json
 {
+  "start": { ... },
+  "end": {
+    "method": 2,
+    "lras_initiator": null
+  },
   "metadata": {
-    "date": "2018-06-22T07:52:59Z",
-    "duration": 5209,
-    "platform": "dolphin",
-    "players": [
-      {
-        "port": "P1",
+    "startAt": "2020-08-01T19:41:19Z",
+    "lastFrame": 11238,
+    "players": {
+      "1": {
+        "names": {
+          "netplay": "abbott",
+          "code": "AAAA#123"
+        },
         "characters": {
-          "18": 5209
+          "17": 11469
         }
       },
-      {
-        "port": "P2",
+      "0": {
+        "names": {
+          "netplay": "costello",
+          "code": "BBBB#456"
+        },
         "characters": {
-          "1": 5209
+          "18": 11469
         }
       }
-    ]
-  },
-  "start": {...},
-  "end": {...}
+    },
+    "playedOn": "dolphin"
+  }
 }
 ```
 
