@@ -144,7 +144,7 @@ fn inspect<R: Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
 
 fn parse_opts() -> Opts {
 	let matches = App::new("slp")
-		.version("0.1")
+		.version("0.2")
 		.author("melkor <hohav@fastmail.com>")
 		.about("Inspector for Slippi SSBM replay files")
 		.arg(Arg::with_name("outfile")
