@@ -12,6 +12,7 @@ use ::arrow::{
 	record_batch::RecordBatch,
 };
 use clap::{App, Arg};
+use log::{error, warn};
 use parquet::{
 	arrow::ArrowWriter,
 	basic::{Compression, Encoding},
@@ -60,8 +61,10 @@ fn remove_items(frames: StructArray) -> Result<RecordBatch, Box<dyn Error>> {
 }
 
 fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, short: bool) -> Result<(), Box<dyn Error>> {
+	warn!("Peppi format is experimental!");
+
 	if game.start.slippi.version > MAX_SUPPORTED_VERSION {
-		eprintln!("WARNING: unsupported Slippi version ({} > {}). Unknown fields will be omitted from output!",
+		warn!("unsupported Slippi version ({} > {}). Unknown fields will be omitted from output!",
 			game.start.slippi.version, MAX_SUPPORTED_VERSION);
 	}
 
@@ -198,7 +201,10 @@ fn parse_opts() -> Opts {
 }
 
 pub fn _main() -> Result<(), Box<dyn Error>> {
-	pretty_env_logger::init();
+	env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn"))
+		.format_timestamp(None)
+		.format_target(false)
+		.init();
 
 	let opts = parse_opts();
 	unsafe {
@@ -223,7 +229,7 @@ pub fn _main() -> Result<(), Box<dyn Error>> {
 
 pub fn main() {
 	if let Err(e) = _main() {
-		log::error!("{}", e);
+		error!("{}", e);
 		std::process::exit(2);
 	}
 }
