@@ -12,7 +12,7 @@ env_logger = "0.9"
 log = "0.4"
 parquet = { version = "6.3", default-features = false, features = ["arrow", "base64"] }
 parquet-format = "4.0"
-peppi = "1.0.0-alpha.5"
+peppi = "1.0.0-alpha.6"
 serde_json = "1.0"
 
 [profile.release]
