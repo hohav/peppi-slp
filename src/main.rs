@@ -1,3 +1,5 @@
+#![allow(clippy::redundant_field_names)]
+
 use std::{
 	error::Error,
 	fs::{self, File},
@@ -84,7 +86,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, short: bool) -> Result
 			.build();
 
 		// write items separately (workaround for buggy/missing ListArray support in Parquet)
-		if let Some(items) = arrow::items_to_arrow(&game, opts) {
+		if let Some(items) = arrow::items_to_arrow(game, opts) {
 			let batch = RecordBatch::from(&items);
 			let buf = File::create(dir.join("items.parquet"))?;
 			let mut writer = ArrowWriter::try_new(
@@ -94,7 +96,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, short: bool) -> Result
 		}
 
 		// write the frame data
-		let batch = remove_items(arrow::frames_to_arrow(&game, opts))?;
+		let batch = remove_items(arrow::frames_to_arrow(game, opts))?;
 		let buf = File::create(dir.join("frames.parquet"))?;
 		let mut writer = ArrowWriter::try_new(
 			buf, batch.schema(), Some(props))?;
@@ -136,9 +138,9 @@ fn inspect<R: Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
 	)?;
 	use Format::*;
 	match (opts.format, opts.outfile.as_str()) {
-		(Peppi, "-") => Err("cannot output Peppi to STDOUT")?,
+		(Peppi, "-") => Err("cannot output Peppi to STDOUT".into()),
 		(Peppi, o) => write_peppi(&game, o, opts.short),
-		(Slippi, "-") => Err("cannot output Slippi to STDOUT")?,
+		(Slippi, "-") => Err("cannot output Slippi to STDOUT".into()),
 		(Slippi, o) => write_slippi(&game, o),
 		(format, "-") => write(&game, io::stdout(), format),
 		(format, s) => write(&game, File::create(s)?, format),
@@ -213,7 +215,7 @@ pub fn _main() -> Result<(), Box<dyn Error>> {
 		}
 	};
 
-	if opts.infile == "" && atty::is(atty::Stream::Stdin) {
+	if opts.infile.is_empty() && atty::is(atty::Stream::Stdin) {
 		return Err("refusing to read from a TTY (`slp -h` for usage)".into());
 	}
 
