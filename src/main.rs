@@ -14,7 +14,7 @@ use ::arrow::{
 	record_batch::RecordBatch,
 };
 use clap::{App, Arg};
-use log::{error, warn};
+use log::{error, warn, info};
 use parquet::{
 	arrow::ArrowWriter,
 	basic::{Compression, Encoding},
@@ -132,10 +132,13 @@ fn write<W: Write>(game: &Game, out: W, format: Format) -> Result<(), Box<dyn Er
 }
 
 fn inspect<R: Read>(mut buf: R, opts: &Opts) -> Result<(), Box<dyn Error>> {
+	let now = std::time::Instant::now();
 	let game = peppi::game(&mut buf,
 		Some(peppi::serde::de::Opts { skip_frames: opts.short }),
 		Some(peppi::serde::collect::Opts { rollbacks: opts.rollbacks }),
 	)?;
+	info!("Parsed replay in {} ms.", now.elapsed().as_millis());
+
 	use Format::*;
 	match (opts.format, opts.outfile.as_str()) {
 		(Peppi, "-") => Err("cannot output Peppi to STDOUT".into()),
