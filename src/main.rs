@@ -66,7 +66,7 @@ fn write_peppi<P: AsRef<path::Path>>(game: &Game, dir: P, short: bool) -> Result
 	warn!("Peppi format is experimental!");
 
 	if game.start.slippi.version > MAX_SUPPORTED_VERSION {
-		warn!("unsupported Slippi version ({} > {}). Unknown fields will be omitted from output!",
+		warn!("Unsupported Slippi version ({} > {}). Unknown fields will be omitted from output!",
 			game.start.slippi.version, MAX_SUPPORTED_VERSION);
 	}
 
