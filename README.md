@@ -66,19 +66,22 @@ $ slp -s game.slp | jq
 }
 ```
 
-Convert a replay to Peppi format (**⚠️ experimental!**):
+Convert a replay to Peppi format:
 
 ```bash
-$ slp -f peppi -o foo game.slp
+$ slp -f peppi -o game.slpp game.slp
 ```
 
-This creates a directory `foo` with the following files:
-```
-start.json
-end.json
-metadata.json
-frames.parquet
-items.parquet
-```
+## Peppi format
 
-Frame and item data are stored in columnar [Parquet](https://parquet.apache.org/) format. It will be larger than the original .slp file uncompressed, but smaller compressed.
+The Peppi format (.slpp) is a GNU tar archive containing the following files:
+
+- peppi.json
+- metadata.json
+- start.json
+- start.raw
+- end.json
+- end.raw
+- frames.arrow
+
+The last of these, `frames.arrow`, is an [Arrow IPC](https://arrow.apache.org/docs/format/Columnar.html#ipc-file-format) file containing all of the game's frame data. This is a columnar format, which makes .slpp files about twice as compressible as .slp files.
