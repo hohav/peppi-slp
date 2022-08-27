@@ -9,7 +9,7 @@ use std::{
 };
 
 use clap::{Arg, ArgAction, Command};
-use log::{error, info, debug, LevelFilter};
+use log::{error, warn, info, debug, LevelFilter};
 use peekread::{BufPeekReader, PeekRead};
 use serde::{Deserialize, Serialize};
 use xxhash_rust::xxh3::Xxh3;
@@ -294,7 +294,7 @@ fn detect_format<R: Read>(buf: &mut BufPeekReader<R>, opts: &Opts) -> Result<For
 fn read_slippi<R: Read>(buf: R, opts: &Opts) -> Result<(Game, Option<String>), Box<dyn Error>> {
 	let no_verify_reason = no_verify_reason(opts);
 	if let Some(ref reason) = no_verify_reason {
-		info!("Skipping round-trip verification ({})", reason);
+		warn!("Skipping round-trip verification ({})", reason);
 	};
 	let mut buf = HashReader::new(buf, no_verify_reason.is_none());
 
