@@ -9,7 +9,7 @@ use std::{
 };
 
 use clap::{Arg, ArgAction, Command};
-use log::{error, warn, info, debug, LevelFilter};
+use log::{debug, error, info, log, Level, LevelFilter};
 use peekread::{BufPeekReader, PeekRead};
 use serde::{Deserialize, Serialize};
 use xxhash_rust::xxh3::Xxh3;
@@ -257,17 +257,18 @@ fn verify_peppi(slp_hash: String, opts: &Opts) -> Result<(), Box<dyn Error>> {
 	}
 }
 
-fn no_verify_reason(opts: &Opts) -> Option<String> {
+fn no_verify_reason(opts: &Opts) -> Option<(String, Level)> {
+	use Level::*;
 	if opts.output_format != Format::Peppi {
-		Some("non-Peppi output".to_string())
-	} else if opts.outfile.is_none() {
-		Some("writing to STDOUT".to_string())
+		Some(("non-Peppi output".to_string(), Info))
 	} else if opts.no_verify {
-		Some("`--no-verify`".to_string())
+		Some(("`--no-verify`".to_string(), Info))
+	} else if opts.outfile.is_none() {
+		Some(("writing to STDOUT".to_string(), Warn))
 	} else if opts.short {
-		Some("`--short`".to_string())
+		Some(("`--short`".to_string(), Warn))
 	} else if opts.rollback != Rollback::All {
-		Some(format!("`--rollback={}`", <&str>::from(opts.rollback)))
+		Some((format!("`--rollback={}`", <&str>::from(opts.rollback)), Warn))
 	} else {
 		None
 	}
@@ -292,11 +293,14 @@ fn detect_format<R: Read>(buf: &mut BufPeekReader<R>, opts: &Opts) -> Result<For
 }
 
 fn read_slippi<R: Read>(buf: R, opts: &Opts) -> Result<(Game, Option<String>), Box<dyn Error>> {
-	let no_verify_reason = no_verify_reason(opts);
-	if let Some(ref reason) = no_verify_reason {
-		warn!("Skipping round-trip verification ({})", reason);
+	let should_verify = match no_verify_reason(opts) {
+		Some((ref reason, log_level)) => {
+			log!(log_level, "Skipping round-trip verification ({})", reason);
+			false
+		}
+		_ => true,
 	};
-	let mut buf = HashReader::new(buf, no_verify_reason.is_none());
+	let mut buf = HashReader::new(buf, should_verify);
 
 	let game = peppi::game(&mut buf,
 		Some(&peppi::serde::de::Opts {
