@@ -1,17 +1,17 @@
 [package]
 name = "peppi-slp"
-version = "0.3.2"
+version = "0.4.0"
 authors = ["melkor <hohav@fastmail.com>"]
 edition = "2021"
 
 [dependencies]
-arrow2 = { git = "https://github.com/jorgecarleitao/arrow2.git", rev = "f75ce4266e04c4084fa5666c6c5ff5efd6b5036f", features = ["io_ipc", "io_ipc_write_async", "io_ipc_compression", "io_print"] }
+arrow2 = "0.18"
 atty = "0.2"
 clap = { version = "3.2", features = ["cargo"] }
-env_logger = "0.9"
+env_logger = "0.10"
 log = "0.4"
 peekread = "0.1"
-peppi = { git = "https://github.com/hohav/peppi.git", rev = "961d95beea86b7d2800ee33f1e0d5f60f186454e" }
+peppi = "2.0.0-alpha.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 tar = "0.4"
