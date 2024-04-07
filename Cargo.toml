@@ -1,6 +1,6 @@
 [package]
 name = "peppi-slp"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["melkor <hohav@fastmail.com>"]
 edition = "2021"
 
