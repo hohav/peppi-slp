@@ -1,10 +1,10 @@
 # slp
 
-`slp` is an inspector/converter for Slippi replay files.
+`slp` is an inspector & converter for Slippi replay files.
 
 ## Installation
 
-Download the [latest release](https://github.com/hohav/peppi-slp/releases/latest), or get the source and build it with `cargo build --release`.
+Download the [latest release](https://github.com/hohav/peppi-slp/releases/latest), or get the source and build it with `cargo build --release` (requires Rust, which you can install with [rustup](https://rustup.rs/)).
 
 ## Usage
 
