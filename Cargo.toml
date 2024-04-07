@@ -8,7 +8,7 @@ edition = "2021"
 arrow2 = "0.17"
 atty = "0.2"
 clap = { version = "3.2", features = ["cargo"] }
-env_logger = "0.10"
+env_logger = "0.11"
 log = "0.4"
 peekread = "0.1"
 peppi = "2.0"
