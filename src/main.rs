@@ -200,6 +200,7 @@ fn read_slippi<R: Read + Seek>(mut r: R, opts: &Opts) -> Result<Game, Box<dyn Er
 	let game = slippi::read(&mut r,
 		Some(&slippi::de::Opts {
 			skip_frames: opts.short,
+			compute_hash: no_verify_reason(opts).is_none(),
 			debug: opts.debug_dir.as_ref().map(|dir|
 				slippi::de::Debug {
 					dir: dir.clone(),

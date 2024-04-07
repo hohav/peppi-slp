@@ -15,19 +15,15 @@ Run `slp --help` for a complete list of options.
 Print the post-frame action state for each port (player) on the last frame of the game:
 
 ```bash
-# `-n` to print states with human-readable names
-$ slp -n game.slp | jq .frames[-1].ports[].leader.post.state
-```
-
-```json
-"14:WAIT"
-"1:DEAD_LEFT"
+$ slp game.slp | jq '.frames[-1].ports[].leader.post.state'
+14
+1
 ```
 
 Convert a replay to JSON, skipping frame data:
 
 ```bash
-# `-s` to skip frame data
+# `-s` skips the frame data
 $ slp -s game.slp | jq
 ```
 
@@ -66,22 +62,12 @@ $ slp -s game.slp | jq
 }
 ```
 
-Convert a replay to Peppi format:
+## Peppi format
+
+Convert a replay to [Peppi format](https://github.com/hohav/peppi#peppi-format):
 
 ```bash
 $ slp -f peppi -o game.slpp game.slp
 ```
 
-## Peppi format
-
-The Peppi format (.slpp) is a GNU tar archive containing the following files:
-
-- peppi.json
-- metadata.json
-- start.json
-- start.raw
-- end.json
-- end.raw
-- frames.arrow
-
-The last of these, `frames.arrow`, is an [Arrow IPC](https://arrow.apache.org/docs/format/Columnar.html#ipc-file-format) file containing all of the game's frame data. This is a columnar format, which makes .slpp files about twice as compressible as .slp files.
+⚠️ **The Peppi format has been upgraded from v1 to v2**. The latest version of this tool (slp 0.5) can currently only handle v2 `.slpp` files. But you can upgrade a v1 file to v2 by convering it to `.slp` using the prior release of this tool, then back to `.slpp` using the latest release. I will work on adding backwards compatibility if there's demand, so please let me know if this is a problem for you!
