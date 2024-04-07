@@ -303,7 +303,7 @@ fn parse_opts() -> Opts {
 			.short('f')
 			.long("format")
 			.num_args(1)
-			.value_parser(clap::builder::PossibleValuesParser::new(["json", "null", "peppi", "rust", "slippi"]))
+			.value_parser(clap::builder::PossibleValuesParser::new(["json", "null", "peppi", "slippi"]))
 			.default_value("json"))
 		.arg(Arg::new("compression")
 			.help("Compression method")
