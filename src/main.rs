@@ -291,39 +291,39 @@ fn parse_opts() -> Opts {
 		.arg(Arg::new("input-format")
 			.help("Input format")
 			.long("input-format")
-			.number_of_values(1)
+			.num_args(1)
 			.value_parser(clap::builder::PossibleValuesParser::new(["peppi", "slippi"])))
 		.arg(Arg::new("outfile")
 			.help("Output path")
 			.short('o')
 			.long("outfile")
-			.number_of_values(1))
+			.num_args(1))
 		.arg(Arg::new("format")
 			.help("Output format")
 			.short('f')
 			.long("format")
-			.number_of_values(1)
+			.num_args(1)
 			.value_parser(clap::builder::PossibleValuesParser::new(["json", "null", "peppi", "rust", "slippi"]))
 			.default_value("json"))
 		.arg(Arg::new("compression")
 			.help("Compression method")
 			.short('c')
 			.long("compression")
-			.number_of_values(1)
+			.num_args(1)
 			.value_parser(clap::builder::PossibleValuesParser::new(["lz4", "zstd"])))
 		.arg(Arg::new("short")
 			.help("Don't output frame data")
 			.short('s')
 			.long("short")
-			.takes_value(false))
+			.action(ArgAction::SetTrue))
 		.arg(Arg::new("no-verify")
 			.help("Don't verify Peppi output")
 			.long("no-verify")
-			.takes_value(false))
+			.action(ArgAction::SetTrue))
 		.arg(Arg::new("debug-dir")
 			.help("Debug output dir")
 			.long("debug-dir")
-			.number_of_values(1))
+			.num_args(1))
 		.arg(Arg::new("verbose")
 			.help("Be more verbose")
 			.short('v')
@@ -336,13 +336,13 @@ fn parse_opts() -> Opts {
 		infile: matches.get_one::<String>("game.slp").map(|s| s.into()),
 		input_format: matches.get_one::<String>("input-format").map(|f| (&f[..]).try_into().unwrap()),
 		log_level: log_level(*matches.get_one("verbose").unwrap()),
-		no_verify: matches.is_present("no-verify"),
+		no_verify: matches.get_flag("no-verify"),
 		outfile: matches.get_one::<String>("outfile").map(|s| s.into()),
 		output_format: (&matches.get_one::<String>("format").unwrap()[..]).try_into().unwrap(),
 		compression: matches.get_one::<String>("compression").map(|c|
 			parse_compression(c).unwrap()
 		),
-		short: matches.is_present("short"),
+		short: matches.get_flag("short"),
 	}
 }
 
