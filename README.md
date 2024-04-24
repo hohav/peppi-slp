@@ -70,4 +70,6 @@ Convert a replay to [Peppi format](https://github.com/hohav/peppi#peppi-format):
 $ slp -f peppi -o game.slpp game.slp
 ```
 
+This conversion is *lossless*, and you can reverse it to get back your original `.slp` file. When converting to the Peppi format, `slp` will automatically verify that round-tripping back to `.slp` would produce the exact same file. If it doesn't, `slp` will exit with an error message.
+
 ⚠️ **The Peppi format has been upgraded from v1 to v2**. The latest version of this tool (slp 0.5) can currently only handle v2 `.slpp` files. But you can upgrade a v1 file to v2 by converting it to `.slp` using the prior release of this tool, then back to `.slpp` using the latest release. I will work on adding backwards compatibility if there's demand, so please let me know if this is a problem for you!
