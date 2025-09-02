@@ -162,10 +162,25 @@ fn verify_peppi(hash_in: String, opts: &Opts) -> Result<(), Box<dyn Error>> {
 	}
 }
 
+fn verify_slippi(hash_in: String, opts: &Opts) -> Result<(), Box<dyn Error>> {
+	let now = std::time::Instant::now();
+	let outfile = opts.outfile.as_ref().unwrap();
+	let hash_out = hash(&mut File::open(outfile)?)?;
+
+	debug!("original hash: {}", hash_in);
+	debug!("round-trip hash: {}", hash_out);
+	if hash_in == hash_out {
+		info!("Verified output in {} μs", now.elapsed().as_micros());
+		Ok(())
+	} else {
+		Err(format!("round-trip verification error (hash: {})", hash_in).into())
+	}
+}
+
 fn no_verify_reason(opts: &Opts) -> Option<(String, Level)> {
 	use Level::*;
-	if opts.output_format != Format::Peppi {
-		Some(("non-Peppi output".to_string(), Info))
+	if opts.output_format != Format::Slippi && opts.output_format != Format::Peppi {
+		Some(("lossy output".to_string(), Info))
 	} else if opts.no_verify {
 		Some(("`--no-verify`".to_string(), Info))
 	} else if opts.outfile.is_none() {
@@ -378,7 +393,12 @@ pub fn _main() -> Result<(), Box<dyn Error>> {
 	if let Some((ref reason, log_level)) = no_verify_reason(&opts) {
 		log!(log_level, "Skipping round-trip verification ({})", reason);
 	} else {
-		verify_peppi(hash.ok_or("missing hash")?, &opts)?;
+		let hash = hash.ok_or("missing hash")?;
+		match opts.output_format {
+			Format::Peppi => verify_peppi(hash, &opts)?,
+			Format::Slippi => verify_slippi(hash, &opts)?,
+			_ => unreachable!(),
+		};
 	}
 
 	Ok(())
